@@ -147,3 +147,81 @@ MainTab:CreateToggle({
         AutoSpam = v
     end
 })
+
+--// VARIABLES NUEVAS
+local AutoTrash = false
+local TrashToolName = "TrashTool" -- Cambia al nombre exacto de la tool
+local WalkSpeedOriginal = 16
+
+--// FUNCIONES
+local function getTrashBins()
+    -- Asumimos que los tachos están en workspace.TrashBins
+    local bins = {}
+    if workspace:FindFirstChild("TrashBins") then
+        for _, t in pairs(workspace.TrashBins:GetChildren()) do
+            if t:IsA("BasePart") then
+                table.insert(bins, t)
+            end
+        end
+    end
+    return bins
+end
+
+local function grabTrash()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool or tool.Name ~= TrashToolName then return end
+
+    local originalPos = hrp.Position
+    local bins = getTrashBins()
+
+    for _, bin in ipairs(bins) do
+        if not AutoTrash then break end
+
+        -- TP al bin
+        hrp.CFrame = CFrame.new(bin.Position + Vector3.new(0,2,0)) -- un poco arriba del tacho
+        task.wait(0.1)
+
+        -- Activar tool para agarrar
+        tool:Activate()
+        task.wait(0.2) -- tiempo de agarrar
+
+        -- Aumentar velocidad si agarró tacho
+        if char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool").Name == TrashToolName then
+            char.Humanoid.WalkSpeed = 30
+        end
+
+        -- Volver a la posición original
+        hrp.CFrame = CFrame.new(originalPos)
+        task.wait(0.1)
+    end
+
+    -- Reset walkspeed
+    if char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = WalkSpeedOriginal
+    end
+end
+
+--// LOOP DEL BOTON
+task.spawn(function()
+    while true do
+        task.wait()
+        if AutoTrash then
+            pcall(function()
+                grabTrash()
+            end)
+        end
+    end
+end)
+
+--// UI: BOTON
+MainTab:CreateToggle({
+    Name = "Auto agarrar tachos",
+    CurrentValue = false,
+    Callback = function(v)
+        AutoTrash = v
+    end
+})
