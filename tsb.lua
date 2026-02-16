@@ -147,77 +147,86 @@ MainTab:CreateToggle({
         AutoSpam = v
     end
 })
-
---// VARIABLES NUEVAS
+--// AUTO TRASH GRAB (FIX REAL)
 local AutoTrash = false
-local TrashToolName = "TrashTool" -- Cambia al nombre exacto de la tool
-local WalkSpeedOriginal = 16
+local OriginalSpeed = 16
 
---// FUNCIONES
-local function getTrashBins()
-    -- Asumimos que los tachos están en workspace.TrashBins
-    local bins = {}
-    if workspace:FindFirstChild("TrashBins") then
-        for _, t in pairs(workspace.TrashBins:GetChildren()) do
-            if t:IsA("BasePart") then
-                table.insert(bins, t)
-            end
+local TrashNames = {
+    "trash",
+    "garbage",
+    "bin",
+    "can",
+    "tacho"
+}
+
+local function isTrash(part)
+    local name = part.Name:lower()
+    for _, n in ipairs(TrashNames) do
+        if name:find(n) then
+            return true
         end
     end
-    return bins
+    return false
+end
+
+local function getTrashCans()
+    local list = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isTrash(obj) then
+            table.insert(list, obj)
+        end
+    end
+    return list
 end
 
 local function grabTrash()
     local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
+    if not char then return end
 
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool or tool.Name ~= TrashToolName then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
 
-    local originalPos = hrp.Position
-    local bins = getTrashBins()
+    local oldCFrame = hrp.CFrame
 
-    for _, bin in ipairs(bins) do
+    for _, trash in ipairs(getTrashCans()) do
         if not AutoTrash then break end
 
-        -- TP al bin
-        hrp.CFrame = CFrame.new(bin.Position + Vector3.new(0,2,0)) -- un poco arriba del tacho
-        task.wait(0.1)
+        -- TP al tacho
+        hrp.CFrame = trash.CFrame * CFrame.new(0, 2, 0)
+        task.wait(0.15)
 
-        -- Activar tool para agarrar
-        tool:Activate()
-        task.wait(0.2) -- tiempo de agarrar
+        -- CLICK PARA AGARRAR (mobile/pc compatible)
+        pcall(function()
+            if trash:FindFirstChildOfClass("ClickDetector") then
+                fireclickdetector(trash:FindFirstChildOfClass("ClickDetector"))
+            end
+        end)
 
-        -- Aumentar velocidad si agarró tacho
-        if char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool").Name == TrashToolName then
-            char.Humanoid.WalkSpeed = 30
-        end
+        task.wait(0.2)
 
-        -- Volver a la posición original
-        hrp.CFrame = CFrame.new(originalPos)
-        task.wait(0.1)
+        -- si ahora "tenés" el tacho, sube velocidad
+        hum.WalkSpeed = 30
+
+        -- volver
+        hrp.CFrame = oldCFrame
+        task.wait(0.15)
     end
 
-    -- Reset walkspeed
-    if char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = WalkSpeedOriginal
-    end
+    hum.WalkSpeed = OriginalSpeed
 end
 
---// LOOP DEL BOTON
+-- LOOP
 task.spawn(function()
     while true do
-        task.wait()
+        task.wait(0.5)
         if AutoTrash then
-            pcall(function()
-                grabTrash()
-            end)
+            pcall(grabTrash)
         end
     end
 end)
 
---// UI: BOTON
+-- BOTÓN UI
 MainTab:CreateToggle({
     Name = "Auto agarrar tachos",
     CurrentValue = false,
