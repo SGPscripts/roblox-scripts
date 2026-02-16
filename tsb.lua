@@ -234,3 +234,49 @@ MainTab:CreateToggle({
         AutoTrash = v
     end
 })
+MainTab:CreateButton({
+    Name = "Agarrar TrashCan",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if not char then return end
+
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+
+        -- guardar posición
+        local oldCFrame = hrp.CFrame
+        local oldSpeed = hum.WalkSpeed
+
+        -- buscar el tacho por nombre EXACTO
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name == "TrashCan" then
+
+                -- TP al tacho
+                hrp.CFrame = obj.CFrame * CFrame.new(0, 2, 0)
+                task.wait(0.2)
+
+                -- intentar agarrar
+                pcall(function()
+                    local cd = obj:FindFirstChildOfClass("ClickDetector")
+                    if cd then
+                        fireclickdetector(cd)
+                    end
+                end)
+
+                task.wait(0.2)
+
+                -- boost velocidad si lo agarró
+                hum.WalkSpeed = 30
+
+                break
+            end
+        end
+
+        -- volver a la posición original
+        task.wait(0.1)
+        hrp.CFrame = oldCFrame
+        hum.WalkSpeed = oldSpeed
+    end
+})
