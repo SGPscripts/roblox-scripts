@@ -163,3 +163,118 @@ MainTab:CreateToggle({
         hum.WalkSpeed = oldSpeed
     end
 })
+-- =========================
+-- REQUIERE: Rayfield Library PEGADA ARRIBA
+-- =========================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- Rayfield window
+local Window = Rayfield:CreateWindow({
+    Name = "Aimlock Studio Test",
+    LoadingTitle = "Aimlock",
+    LoadingSubtitle = "Studio Only",
+    ConfigurationSaving = { Enabled = false }
+})
+
+local MainTab = Window:CreateTab("Main")
+
+-- Variables
+local AimlockEnabled = false
+local LockedTarget = nil
+local AimConnection = nil
+
+-- Buscar jugador más cercano
+local function getClosestPlayer()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+
+    local hrp = char.HumanoidRootPart
+    local closest, dist = nil, math.huge
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character
+           and plr.Character:FindFirstChild("HumanoidRootPart")
+           and plr.Character:FindFirstChild("Humanoid")
+           and plr.Character.Humanoid.Health > 0 then
+
+            local d = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = plr
+            end
+        end
+    end
+
+    return closest
+end
+
+-- UI arriba del target
+local function createBillboard(target)
+    local head = target.Character:FindFirstChild("Head")
+    if not head then return end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "AimlockUI"
+    gui.Size = UDim2.fromScale(4, 1)
+    gui.StudsOffset = Vector3.new(0, 2.5, 0)
+    gui.AlwaysOnTop = true
+    gui.Parent = head
+
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.fromScale(1, 1)
+    txt.BackgroundTransparency = 1
+    txt.Text = "LOCKED: " .. target.Name
+    txt.TextColor3 = Color3.fromRGB(255, 60, 60)
+    txt.TextStrokeTransparency = 0
+    txt.TextScaled = true
+    txt.Font = Enum.Font.GothamBold
+    txt.Parent = gui
+
+    return gui
+end
+
+local AimUI = nil
+
+-- Toggle Aimlock
+MainTab:CreateToggle({
+    Name = "Aimlock Fuerte (Studio)",
+    CurrentValue = false,
+    Callback = function(state)
+        AimlockEnabled = state
+
+        if state then
+            LockedTarget = getClosestPlayer()
+            if not LockedTarget then return end
+
+            AimUI = createBillboard(LockedTarget)
+
+            AimConnection = RunService.RenderStepped:Connect(function()
+                if not AimlockEnabled
+                   or not LockedTarget
+                   or not LockedTarget.Character
+                   or not LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
+                    return
+                end
+
+                -- APUNTA FUERTE AL TORSO
+                local targetPos = LockedTarget.Character.HumanoidRootPart.Position
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            end)
+
+        else
+            LockedTarget = nil
+            if AimConnection then
+                AimConnection:Disconnect()
+                AimConnection = nil
+            end
+            if AimUI then
+                AimUI:Destroy()
+                AimUI = nil
+            end
+        end
+    end
+})
