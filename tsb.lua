@@ -72,6 +72,9 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("main")
 
+-- 🔧 FIX CLAVE
+local Tab = MainTab
+
 --// variables
 local Autofarm = false
 local AutoSpam = false
@@ -156,12 +159,10 @@ task.spawn(function()
                 local size = Camera.ViewportSize
                 local x, y = size.X / 2, size.Y / 2
 
-                -- mouse click
                 VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
                 task.wait(0.03)
                 VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
 
-                -- keys
                 for _, key in ipairs({
                     Enum.KeyCode.One,
                     Enum.KeyCode.Two,
@@ -201,9 +202,10 @@ MainTab:CreateToggle({
         AutoSpam = v
     end
 })
--- boton tsb trashcanman moveset
+
+--// boton tsb trashcanman moveset
 Tab:CreateButton({
-    Name = "Basurero",
+    Name = "basurero",
     Callback = function()
         pcall(function()
             loadstring(game:HttpGet(
