@@ -201,3 +201,14 @@ MainTab:CreateToggle({
         AutoSpam = v
     end
 })
+-- boton tsb trashcanman moveset
+Tab:CreateButton({
+    Name = "Basurero",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet(
+                "https://rawscripts.net/raw/The-Strongest-Battlegrounds-TSB-TrashCanMan-Moveset-55951"
+            ))()
+        end)
+    end
+})
