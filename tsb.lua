@@ -24,22 +24,6 @@ local function httpget(url)
     if ok and type(res) == "string" then
         return res
     end
-
-    if syn and syn.request then
-        local r = syn.request({Url = url, Method = "GET"})
-        if r and r.Body then return r.Body end
-    end
-
-    if request then
-        local r = request({Url = url, Method = "GET"})
-        if r and r.Body then return r.Body end
-    end
-
-    if http and http.request then
-        local r = http.request({Url = url, Method = "GET"})
-        if r and r.Body then return r.Body end
-    end
-
     return nil
 end
 
@@ -71,9 +55,6 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("main")
-
--- 🔧 FIX CLAVE
-local Tab = MainTab
 
 --// variables
 local Autofarm = false
@@ -181,7 +162,7 @@ task.spawn(function()
     end
 end)
 
---// ui toggles
+--// toggles
 MainTab:CreateToggle({
     Name = "autofarm (under floor)",
     CurrentValue = false,
@@ -203,9 +184,9 @@ MainTab:CreateToggle({
     end
 })
 
---// boton tsb trashcanman moveset
-Tab:CreateButton({
-    Name = "basurero",
+--// boton trashcanman FIXED
+MainTab:CreateButton({
+    Name = "trashcanman",
     Callback = function()
         pcall(function()
             loadstring(game:HttpGet(
