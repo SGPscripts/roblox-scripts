@@ -1,4 +1,4 @@
---// SERVICES
+--// services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local VIM = game:GetService("VirtualInputManager")
@@ -6,7 +6,7 @@ local VIM = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
---// RAYFIELD (fix loader)
+--// rayfield loader estable
 pcall(function()
     getgenv().SecureMode = true
 end)
@@ -17,7 +17,7 @@ local mirrors = {
     "https://raw.githubusercontent.com/jensonhirst/Rayfield/main/source"
 }
 
-local function http_get(url)
+local function httpget(url)
     local ok, res = pcall(function()
         return game:HttpGet(url)
     end)
@@ -26,17 +26,17 @@ local function http_get(url)
     end
 
     if syn and syn.request then
-        local r = syn.request({ Url = url, Method = "GET" })
+        local r = syn.request({Url = url, Method = "GET"})
         if r and r.Body then return r.Body end
     end
 
     if request then
-        local r = request({ Url = url, Method = "GET" })
+        local r = request({Url = url, Method = "GET"})
         if r and r.Body then return r.Body end
     end
 
     if http and http.request then
-        local r = http.request({ Url = url, Method = "GET" })
+        local r = http.request({Url = url, Method = "GET"})
         if r and r.Body then return r.Body end
     end
 
@@ -45,7 +45,7 @@ end
 
 local Rayfield
 for _, url in ipairs(mirrors) do
-    local src = http_get(url)
+    local src = httpget(url)
     if src then
         local ok, lib = pcall(function()
             return loadstring(src)()
@@ -62,22 +62,22 @@ if not Rayfield then
     return
 end
 
+--// ui
 local Window = Rayfield:CreateWindow({
-    Name = "TSB | PC Hub",
-    LoadingTitle = "TSB Hub",
-    LoadingSubtitle = "PC Version",
-    ConfigurationSaving = { Enabled = false },
-    KeySystem = false
+    Name = "tsb | pc hub",
+    LoadingTitle = "tsb hub",
+    LoadingSubtitle = "pc version",
+    ConfigurationSaving = { Enabled = false }
 })
 
-local MainTab = Window:CreateTab("Main", 4483362458)
+local MainTab = Window:CreateTab("main")
 
---// VARIABLES
+--// variables
 local Autofarm = false
 local AutoSpam = false
 local AutofarmConn
 
---// NOCLIP
+--// noclip
 local function noclip(char)
     for _, v in pairs(char:GetDescendants()) do
         if v:IsA("BasePart") then
@@ -86,9 +86,10 @@ local function noclip(char)
     end
 end
 
---// GET CLOSEST PLAYER
+--// get closest player
 local function getClosestPlayer()
-    local closest, dist = nil, math.huge
+    local closest = nil
+    local dist = math.huge
 
     for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer
@@ -112,7 +113,7 @@ local function getClosestPlayer()
     return closest
 end
 
---// AUTOFARM (UNDER FLOOR)
+--// autofarm under floor
 local function startAutofarm()
     AutofarmConn = RunService.Heartbeat:Connect(function()
         if not Autofarm then return end
@@ -125,15 +126,15 @@ local function startAutofarm()
         local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
-            local tHrp = target.Character.HumanoidRootPart
+            local thrp = target.Character.HumanoidRootPart
 
             local pos = Vector3.new(
-                tHrp.Position.X,
-                tHrp.Position.Y - 7,
-                tHrp.Position.Z
+                thrp.Position.X,
+                thrp.Position.Y - 7,
+                thrp.Position.Z
             )
 
-            hrp.CFrame = CFrame.lookAt(pos, tHrp.Position)
+            hrp.CFrame = CFrame.lookAt(pos, thrp.Position)
             hrp.Velocity = Vector3.zero
         end
     end)
@@ -146,21 +147,21 @@ local function stopAutofarm()
     end
 end
 
---// AUTO SPAM (PC CLICK + KEYS)
+--// auto spam
 task.spawn(function()
     while true do
         task.wait()
         if AutoSpam then
             pcall(function()
-                -- 🖱️ CLICK NORMAL (PC)
                 local size = Camera.ViewportSize
                 local x, y = size.X / 2, size.Y / 2
 
+                -- mouse click
                 VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
                 task.wait(0.03)
                 VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
 
-                -- ⌨️ TECLAS 1 2 3 4 Q
+                -- keys
                 for _, key in ipairs({
                     Enum.KeyCode.One,
                     Enum.KeyCode.Two,
@@ -179,9 +180,9 @@ task.spawn(function()
     end
 end)
 
---// UI
+--// ui toggles
 MainTab:CreateToggle({
-    Name = "Autofarm (Under Floor)",
+    Name = "autofarm (under floor)",
     CurrentValue = false,
     Callback = function(v)
         Autofarm = v
@@ -194,25 +195,9 @@ MainTab:CreateToggle({
 })
 
 MainTab:CreateToggle({
-    Name = "Auto spam (Click + 1 2 3 4 Q)",
+    Name = "auto spam (click + 1 2 3 4 q)",
     CurrentValue = false,
     Callback = function(v)
         AutoSpam = v
-    end
-})
-
-                task.wait(0.2)
-
-                -- boost velocidad si lo agarró
-                hum.WalkSpeed = 30
-
-                break
-            end
-        end
-
-        -- volver a la posición original
-        task.wait(0.1)
-        hrp.CFrame = oldCFrame
-        hum.WalkSpeed = oldSpeed
     end
 })
