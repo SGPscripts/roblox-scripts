@@ -47,14 +47,42 @@ Tab:CreateButton({
    Name = "Apply Skin",
    Callback = function()
 
-      local char = game.Players.LocalPlayer.Character
+      local player = game.Players.LocalPlayer
+      local char = player.Character
       if not char then return end
+
+      local humanoid = char:FindFirstChildOfClass("Humanoid")
+      if not humanoid then return end
+
+      local sprite
 
       for _,v in pairs(char:GetDescendants()) do
          if v:IsA("ImageLabel") then
-            v.Image = "rbxassetid://"..IdleID
+            sprite = v
+            break
          end
       end
+
+      if not sprite then return end
+
+      print("sprite encontrado")
+
+      task.spawn(function()
+         while sprite and sprite.Parent do
+
+            if humanoid.MoveDirection.Magnitude > 0 then
+               sprite.Image = "rbxassetid://"..Walk1ID
+               task.wait(0.15)
+
+               sprite.Image = "rbxassetid://"..Walk2ID
+               task.wait(0.15)
+            else
+               sprite.Image = "rbxassetid://"..IdleID
+               task.wait(0.2)
+            end
+
+         end
+      end)
 
       print("skin aplicada :)")
 
