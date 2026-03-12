@@ -15,6 +15,8 @@ local IdleID = ""
 local Walk1ID = ""
 local Walk2ID = ""
 
+local AnimationRunning = false
+
 -- función para aplicar skin
 local function ApplySkin()
 
@@ -34,23 +36,43 @@ local function ApplySkin()
       end
    end
 
-   if not sprite then return end
+   if not sprite then
+      print("no se encontró sprite")
+      return
+   end
+
+   if AnimationRunning then
+      return
+   end
+
+   AnimationRunning = true
 
    task.spawn(function()
+
+      local frame = false
+
       while sprite and sprite.Parent do
 
          if humanoid.MoveDirection.Magnitude > 0 then
-            sprite.Image = "rbxassetid://"..Walk1ID
-            task.wait(0.15)
 
-            sprite.Image = "rbxassetid://"..Walk2ID
-            task.wait(0.15)
+            frame = not frame
+
+            if frame then
+               sprite.Image = "rbxassetid://"..Walk1ID
+            else
+               sprite.Image = "rbxassetid://"..Walk2ID
+            end
+
          else
             sprite.Image = "rbxassetid://"..IdleID
-            task.wait(0.2)
          end
 
+         task.wait(0.06)
+
       end
+
+      AnimationRunning = false
+
    end)
 
 end
@@ -89,7 +111,7 @@ Tab:CreateButton({
    end
 })
 
--- BOTÓN DE SKIN PREHECHA
+-- skins prehechas
 
 SkinsTab:CreateButton({
    Name = "Captain Bear",
