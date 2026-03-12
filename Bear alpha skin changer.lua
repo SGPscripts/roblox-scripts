@@ -15,65 +15,43 @@ local IdleID = ""
 local Walk1ID = ""
 local Walk2ID = ""
 
-local AnimationRunning = false
+local Hooked = false
 
--- función para aplicar skin
 local function ApplySkin()
+
+   if Hooked then return end
+   Hooked = true
 
    local player = game.Players.LocalPlayer
    local char = player.Character
    if not char then return end
 
-   local humanoid = char:FindFirstChildOfClass("Humanoid")
-   if not humanoid then return end
-
-   local sprite
-
    for _,v in pairs(char:GetDescendants()) do
       if v:IsA("ImageLabel") then
-         sprite = v
-         break
-      end
-   end
 
-   if not sprite then
-      print("no se encontró sprite")
-      return
-   end
+         v:GetPropertyChangedSignal("Image"):Connect(function()
 
-   if AnimationRunning then
-      return
-   end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum then return end
 
-   AnimationRunning = true
+            if hum.MoveDirection.Magnitude > 0 then
 
-   task.spawn(function()
+               if math.random(1,2) == 1 then
+                  v.Image = "rbxassetid://"..Walk1ID
+               else
+                  v.Image = "rbxassetid://"..Walk2ID
+               end
 
-      local frame = false
-
-      while sprite and sprite.Parent do
-
-         if humanoid.MoveDirection.Magnitude > 0 then
-
-            frame = not frame
-
-            if frame then
-               sprite.Image = "rbxassetid://"..Walk1ID
             else
-               sprite.Image = "rbxassetid://"..Walk2ID
+               v.Image = "rbxassetid://"..IdleID
             end
 
-         else
-            sprite.Image = "rbxassetid://"..IdleID
-         end
-
-         task.wait(0.06)
+         end)
 
       end
+   end
 
-      AnimationRunning = false
-
-   end)
+   print("skin hook aplicada")
 
 end
 
@@ -110,8 +88,6 @@ Tab:CreateButton({
       ApplySkin()
    end
 })
-
--- skins prehechas
 
 SkinsTab:CreateButton({
    Name = "Captain Bear",
