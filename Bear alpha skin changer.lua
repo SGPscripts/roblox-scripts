@@ -15,43 +15,58 @@ local IdleID = ""
 local Walk1ID = ""
 local Walk2ID = ""
 
-local Hooked = false
+local function FindSprite()
+
+   for _,v in pairs(workspace:GetDescendants()) do
+      if v:IsA("ImageLabel") then
+         if v.Image ~= "" then
+            return v
+         end
+      end
+   end
+
+end
 
 local function ApplySkin()
-
-   if Hooked then return end
-   Hooked = true
 
    local player = game.Players.LocalPlayer
    local char = player.Character
    if not char then return end
 
-   for _,v in pairs(char:GetDescendants()) do
-      if v:IsA("ImageLabel") then
+   local humanoid = char:FindFirstChildOfClass("Humanoid")
+   if not humanoid then return end
 
-         v:GetPropertyChangedSignal("Image"):Connect(function()
-
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if not hum then return end
-
-            if hum.MoveDirection.Magnitude > 0 then
-
-               if math.random(1,2) == 1 then
-                  v.Image = "rbxassetid://"..Walk1ID
-               else
-                  v.Image = "rbxassetid://"..Walk2ID
-               end
-
-            else
-               v.Image = "rbxassetid://"..IdleID
-            end
-
-         end)
-
-      end
+   local sprite = FindSprite()
+   if not sprite then
+      print("no se encontró sprite")
+      return
    end
 
-   print("skin hook aplicada")
+   task.spawn(function()
+
+      local frame = false
+
+      while sprite and sprite.Parent do
+
+         if humanoid.MoveDirection.Magnitude > 0 then
+
+            frame = not frame
+
+            if frame then
+               sprite.Image = "rbxassetid://"..Walk1ID
+            else
+               sprite.Image = "rbxassetid://"..Walk2ID
+            end
+
+         else
+            sprite.Image = "rbxassetid://"..IdleID
+         end
+
+         task.wait(0.08)
+
+      end
+
+   end)
 
 end
 
