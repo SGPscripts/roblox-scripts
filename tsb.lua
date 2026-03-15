@@ -61,6 +61,11 @@ local Autofarm = false
 local AutoSpam = false
 local AutofarmConn
 
+--// cam / spectate state
+local originalCameraSubject = nil
+local originalCameraType = nil
+local lastSpectated = nil
+
 --// noclip
 local function noclip(char)
     for _, v in pairs(char:GetDescendants()) do
@@ -97,13 +102,72 @@ local function getClosestPlayer()
     return closest
 end
 
---// autofarm under floor
+--// spectate helpers (Scriptable camera, behind the target)
+local function spectateTarget(plr)
+    if not plr or not plr.Character then return end
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- guardar originales la primera vez
+    if not originalCameraSubject then
+        originalCameraSubject = Camera.CameraSubject
+    end
+    if not originalCameraType then
+        originalCameraType = Camera.CameraType
+    end
+
+    -- evitar cambiar cada frame si es el mismo objetivo
+    if lastSpectated == plr then return end
+
+    pcall(function()
+        -- posicionar la camara DETRÁS del target, un poco arriba y mirando al HRP
+        local lookVec = hrp.CFrame.LookVector
+        local camPos = hrp.Position - (lookVec * 8) + Vector3.new(0, 3, 0)
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = CFrame.new(camPos, hrp.Position)
+        lastSpectated = plr
+    end)
+end
+
+local function updateSpectate(plr)
+    -- llamado cada frame cuando seguimos al mismo objetivo para mantener la cam sin flicker
+    if not plr or not plr.Character then return end
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    pcall(function()
+        local lookVec = hrp.CFrame.LookVector
+        local camPos = hrp.Position - (lookVec * 8) + Vector3.new(0, 3, 0)
+        Camera.CFrame = CFrame.new(camPos, hrp.Position)
+    end)
+end
+
+local function resetCamera()
+    pcall(function()
+        -- preferir volver al humanoid local si existe
+        if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        else
+            Camera.CameraType = originalCameraType or Enum.CameraType.Custom
+            if originalCameraSubject then
+                Camera.CameraSubject = originalCameraSubject
+            end
+        end
+        lastSpectated = nil
+    end)
+end
+
+--// autofarm under floor (modificado para spectear)
 local function startAutofarm()
     AutofarmConn = RunService.Heartbeat:Connect(function()
         if not Autofarm then return end
 
         local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            resetCamera()
+            return
+        end
 
         noclip(char)
 
@@ -111,6 +175,14 @@ local function startAutofarm()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
             local thrp = target.Character.HumanoidRootPart
+
+            -- cambiar a scriptable y spectear al objetivo
+            spectateTarget(target)
+
+            -- mantener la cam estable si ya specteamos
+            if lastSpectated == target then
+                updateSpectate(target)
+            end
 
             local pos = Vector3.new(
                 thrp.Position.X,
@@ -120,6 +192,9 @@ local function startAutofarm()
 
             hrp.CFrame = CFrame.lookAt(pos, thrp.Position)
             hrp.Velocity = Vector3.zero
+        else
+            -- si no hay objetivo válido, resetear cámara para no quedar rara
+            resetCamera()
         end
     end)
 end
@@ -129,6 +204,8 @@ local function stopAutofarm()
         AutofarmConn:Disconnect()
         AutofarmConn = nil
     end
+    -- al parar el autofarm, volver la camara al jugador
+    resetCamera()
 end
 
 --// auto spam
@@ -140,10 +217,12 @@ task.spawn(function()
                 local size = Camera.ViewportSize
                 local x, y = size.X / 2, size.Y / 2
 
+                -- mouse click
                 VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
                 task.wait(0.03)
                 VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
 
+                -- keys
                 for _, key in ipairs({
                     Enum.KeyCode.One,
                     Enum.KeyCode.Two,
