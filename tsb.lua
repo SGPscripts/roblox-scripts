@@ -56,11 +56,17 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("main")
 
+-- nueva tab para players (exclusiones)
+local PlayerTab = Window:CreateTab("players")
+
 --// variables
 local Autofarm = false
 local AutoSpam = false
 local AutofarmConn
 local SpectateZoom = 8
+
+-- tabla de jugadores excluidos (key = player.Name)
+local ExcludedPlayers = {}
 
 --// cam state
 local originalCameraSubject = nil
@@ -76,15 +82,18 @@ local function noclip(char)
     end
 end
 
---// get closest player
+--// get closest player (ignora excluidos y players sin humanoid / muertos)
 local function getClosestPlayer()
     local closest = nil
     local dist = math.huge
 
     for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer
+        and not ExcludedPlayers[plr.Name]
         and plr.Character
         and plr.Character:FindFirstChild("HumanoidRootPart")
+        and plr.Character:FindFirstChild("Humanoid")
+        and plr.Character.Humanoid.Health > 0
         and LocalPlayer.Character
         and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
 
@@ -116,6 +125,7 @@ local function spectateTarget(plr)
         originalCameraType = Camera.CameraType
     end
 
+    -- permitir cambiar la posicion de la camara si cambia el target
     if lastSpectated == plr then return end
 
     local lookVec = hrp.CFrame.LookVector
@@ -139,17 +149,18 @@ local function updateSpectate(plr)
 end
 
 local function resetCamera()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        Camera.CameraType = Enum.CameraType.Custom
-        Camera.CameraSubject = LocalPlayer.Character.Humanoid
-    else
-        Camera.CameraType = originalCameraType or Enum.CameraType.Custom
-        if originalCameraSubject then
-            Camera.CameraSubject = originalCameraSubject
+    pcall(function()
+        if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        else
+            Camera.CameraType = originalCameraType or Enum.CameraType.Custom
+            if originalCameraSubject then
+                Camera.CameraSubject = originalCameraSubject
+            end
         end
-    end
-
-    lastSpectated = nil
+        lastSpectated = nil
+    end)
 end
 
 --// autofarm
@@ -257,11 +268,47 @@ MainTab:CreateSlider({
     Name = "spectate zoom",
     Range = {3,20},
     Increment = 1,
-    CurrentValue = 8,
+    CurrentValue = SpectateZoom,
     Callback = function(v)
         SpectateZoom = v
     end
 })
+
+--// helpers para la tab de players (crear toggles dinamicamente)
+local function createPlayerToggle(plr)
+    if not plr or not plr.Name then return end
+    if plr == LocalPlayer then return end
+
+    -- crear toggle para excluir/permitir target
+    PlayerTab:CreateToggle({
+        Name = "excluir "..plr.Name,
+        CurrentValue = ExcludedPlayers[plr.Name] == true,
+        Callback = function(v)
+            if v then
+                ExcludedPlayers[plr.Name] = true
+            else
+                ExcludedPlayers[plr.Name] = nil
+            end
+        end
+    })
+end
+
+-- crear toggles iniciales
+for _, plr in pairs(Players:GetPlayers()) do
+    createPlayerToggle(plr)
+end
+
+-- cuando entra un jugador nuevo, le creamos el toggle
+Players.PlayerAdded:Connect(function(plr)
+    -- esperar un tick para que Rayfield no rompa si crea muchas cosas de golpe
+    task.wait(0.1)
+    createPlayerToggle(plr)
+end)
+
+-- cuando un jugador sale, limpiamos la exclusion
+Players.PlayerRemoving:Connect(function(plr)
+    ExcludedPlayers[plr.Name] = nil
+end)
 
 --// boton trashcanman
 MainTab:CreateButton({
