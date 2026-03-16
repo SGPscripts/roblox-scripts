@@ -10,6 +10,7 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main", 4483362458)
 
+-- FLY
 local flying = false
 local speed = 80
 local bv
@@ -162,8 +163,8 @@ MainTab:CreateToggle({
    end
 })
 
+-- ESP
 local BoatsFolder = workspace:WaitForChild("ActiveBoats")
-local player = game.Players.LocalPlayer
 local espEnabled = false
 
 MainTab:CreateToggle({
@@ -207,22 +208,7 @@ BoatsFolder.ChildAdded:Connect(function(boat)
    end
 end)
 
--- boat noclip + boat dash (impulso seguro) para SGP hub (rayfield)
-local BoatsFolder = workspace:WaitForChild("ActiveBoats")
-local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
-
--- ui: asume MainTab ya existe
-if not MainTab then
-    if Rayfield then
-        MainTab = Rayfield:CreateTab("Main", 4483362458)
-    else
-        error("Rayfield o MainTab no encontrado")
-    end
-end
-
-local originalCanCollide = {}
-local noclipActive = false
+-- BOAT DASH (sin noclip)
 local dashStrength = 20 -- default
 local dashMaxVel = 200  -- seguridad
 
@@ -235,30 +221,6 @@ local function getMyBoat()
         if tostring(m.Name):lower():find(player.Name:lower()) then return m end
     end
     return nil
-end
-
-local function setBoatNoclip(boat, state)
-    if not boat then return end
-    if state then
-        originalCanCollide = {}
-        for _, v in pairs(boat:GetDescendants()) do
-            if v:IsA("BasePart") then
-                originalCanCollide[v] = v.CanCollide
-                pcall(function() v.CanCollide = false end)
-            end
-        end
-        noclipActive = true
-        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "boat noclip activado", Duration = 2 }) end
-    else
-        for part, val in pairs(originalCanCollide) do
-            if part and part.Parent then
-                pcall(function() part.CanCollide = val end)
-            end
-        end
-        originalCanCollide = {}
-        noclipActive = false
-        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "boat noclip desactivado", Duration = 2 }) end
-    end
 end
 
 local function safeClamp(vec, maxMag)
@@ -302,7 +264,7 @@ local function doBoatDash()
     if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "dash aplicado :D", Duration = 1.5 }) end
 end
 
--- UI: slider para dash strength (5..100) y toggle noclip + botón dash
+-- UI: slider para dash strength (5..100) y botón dash
 MainTab:CreateSlider({
     Name = "Dash Strength",
     Range = {5, 100},
@@ -311,19 +273,6 @@ MainTab:CreateSlider({
     Flag = "BoatDashStrength",
     Callback = function(val)
         dashStrength = val
-    end
-})
-
-MainTab:CreateToggle({
-    Name = "Boat Noclip",
-    CurrentValue = false,
-    Callback = function(val)
-        local boat = getMyBoat()
-        if val then
-            if boat then setBoatNoclip(boat, true) else if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "no se encontró tu barco.", Duration = 3 }) end end
-        else
-            setBoatNoclip(getMyBoat(), false)
-        end
     end
 })
 
