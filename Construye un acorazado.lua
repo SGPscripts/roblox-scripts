@@ -1,5 +1,4 @@
 -- SGP hub : rayfield + ship fly (pc/móvil) + esp nombre/distancia + boat dash
--- botones movidos a la izquierda y separados
 
 -- cargar rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -19,6 +18,7 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+local BoatsFolder = workspace:WaitForChild("ActiveBoats")
 
 ----------------
 -- FLY
@@ -126,47 +126,22 @@ local function startFly()
         local cam = workspace.CurrentCamera
         local move = Vector3.new()
 
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            move += cam.CFrame.LookVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            move -= cam.CFrame.LookVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            move -= cam.CFrame.RightVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            move += cam.CFrame.RightVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then
-            move += Vector3.new(0,1,0)
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
-            move -= Vector3.new(0,1,0)
-        end
+        if UIS:IsKeyDown(Enum.KeyCode.W) then move += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then move -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then move -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then move += cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then move -= Vector3.new(0,1,0) end
 
         local hum = char:FindFirstChildOfClass("Humanoid")
-
         if hum then
             move += Vector3.new(hum.MoveDirection.X,0,hum.MoveDirection.Z)
         end
 
-        if goingUp then
-            move += Vector3.new(0,1,0)
-        end
+        if goingUp then move += Vector3.new(0,1,0) end
+        if goingDown then move -= Vector3.new(0,1,0) end
 
-        if goingDown then
-            move -= Vector3.new(0,1,0)
-        end
-
-        if move.Magnitude > 0 then
-            move = move.Unit
-        end
+        if move.Magnitude > 0 then move = move.Unit end
 
         bv.Velocity = move * speed
         bg.CFrame = cam.CFrame
@@ -186,7 +161,6 @@ local function stopFly()
     if bg then bg:Destroy() end
 
     removeButtons()
-
     flying = false
 
 end
@@ -205,145 +179,22 @@ MainTab:CreateToggle({
    Name = "Ship Fly",
    CurrentValue = false,
    Callback = function(v)
-      if v then
-         startFly()
-      else
-         stopFly()
-      end
+      if v then startFly() else stopFly() end
    end
 })
 
 ----------------
--- ESP
-----------------
-
-local BoatsFolder = workspace:WaitForChild("ActiveBoats")
-
-local espEnabled = false
-local esp = {}
-
-local function createESP(boat)
-
-    if esp[boat] then return end
-
-    local root = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
-    if not root then return end
-
-    local highlight = Instance.new("Highlight")
-    highlight.FillColor = Color3.fromRGB(255,0,0)
-    highlight.FillTransparency = 0.6
-    highlight.Parent = boat
-
-    local bill = Instance.new("BillboardGui")
-    bill.Size = UDim2.new(0,80,0,16)
-    bill.StudsOffset = Vector3.new(0,4,0)
-    bill.AlwaysOnTop = true
-    bill.Parent = root
-
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1,0,1,0)
-    text.BackgroundTransparency = 1
-    text.TextColor3 = Color3.new(1,1,1)
-    text.TextStrokeTransparency = 0.8
-    text.TextSize = 8
-    text.TextScaled = false
-    text.Font = Enum.Font.SourceSansBold
-    text.Parent = bill
-
-    esp[boat] = {highlight,bill,text,root}
-
-end
-
-local function removeESP(boat)
-
-    if not esp[boat] then return end
-
-    for _,v in pairs(esp[boat]) do
-        if typeof(v) == "Instance" then
-            v:Destroy()
-        end
-    end
-
-    esp[boat] = nil
-
-end
-
-MainTab:CreateToggle({
-
-   Name = "Enemy Ship ESP",
-
-   CurrentValue = false,
-
-   Callback = function(v)
-
-      espEnabled = v
-
-      if not v then
-         for b,_ in pairs(esp) do
-            removeESP(b)
-         end
-      end
-
-   end
-
-})
-
-RunService.RenderStepped:Connect(function()
-
-    if not espEnabled then return end
-
-    local char = player.Character
-    if not char then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    for _,boat in pairs(BoatsFolder:GetChildren()) do
-
-        if not tostring(boat.Name):lower():find(player.Name:lower()) then
-
-            if not esp[boat] then
-                createESP(boat)
-            end
-
-        end
-
-    end
-
-    for boat,data in pairs(esp) do
-
-        local root = data[4]
-        local text = data[3]
-
-        if boat.Parent then
-
-            local dist = math.floor((hrp.Position - root.Position).Magnitude)
-            local name = boat.Name:gsub("_Boat","")
-
-            text.Text = name.." | "..dist
-
-        else
-            removeESP(boat)
-        end
-
-    end
-
-end)
-
-----------------
--- BOAT DASH
+-- BOAT SYSTEM
 ----------------
 
 local dashStrength = 20
 
 local function getMyBoat()
-
     for _,b in pairs(BoatsFolder:GetChildren()) do
         if tostring(b.Name):lower():find(player.Name:lower()) then
             return b
         end
     end
-
 end
 
 local function dash()
@@ -358,77 +209,6 @@ local function dash()
 
 end
 
-MainTab:CreateSlider({
-
-    Name = "Dash Strength",
-
-    Range = {5,100},
-
-    Increment = 1,
-
-    CurrentValue = dashStrength,
-
-    Callback = function(v)
-
-        dashStrength = v
-
-    end
-
-})
-
-MainTab:CreateButton({
-
-    Name = "Boat Dash",
-
-    Callback = function()
-
-        dash()
-
-    end
-
-})
-
-----------------
--- AUTO RAM
-----------------
-
-local function getClosestEnemyBoat()
-
-    local myBoat = getMyBoat()
-    if not myBoat then return nil end
-
-    local myRoot = myBoat:FindFirstChild("BoatRoot") or myBoat.PrimaryPart
-    if not myRoot then return nil end
-
-    local closestBoat = nil
-    local closestDist = math.huge
-
-    for _,boat in pairs(BoatsFolder:GetChildren()) do
-
-        if not tostring(boat.Name):lower():find(player.Name:lower()) then
-
-            local root = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
-
-            if root then
-
-                local dist = (myRoot.Position - root.Position).Magnitude
-
-                if dist < closestDist then
-                    closestDist = dist
-                    closestBoat = root
-                end
-
-            end
-
-        end
-
-    end
-
-    return closestBoat
-
-end
-
-
 local function autoRam()
 
     local myBoat = getMyBoat()
@@ -437,24 +217,95 @@ local function autoRam()
     local myRoot = myBoat:FindFirstChild("BoatRoot") or myBoat.PrimaryPart
     if not myRoot then return end
 
-    local enemyRoot = getClosestEnemyBoat()
-    if not enemyRoot then return end
+    local closest
+    local dist = math.huge
 
-    local direction = (enemyRoot.Position - myRoot.Position).Unit
+    for _,boat in pairs(BoatsFolder:GetChildren()) do
+        if not tostring(boat.Name):lower():find(player.Name:lower()) then
+            local root = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
+            if root then
+                local d = (myRoot.Position - root.Position).Magnitude
+                if d < dist then
+                    dist = d
+                    closest = root
+                end
+            end
+        end
+    end
 
-    myRoot.AssemblyLinearVelocity += direction * 90
+    if not closest then return end
+
+    local dir = (closest.Position - myRoot.Position).Unit
+    myRoot.AssemblyLinearVelocity += dir * 150
 
 end
 
+----------------
+-- UI BUTTONS
+----------------
 
-MainTab:CreateButton({
+local gui = Instance.new("ScreenGui")
+gui.Name = "SGP_RAM_DASH"
+gui.ResetOnSpawn = false
+gui.Enabled = false
+gui.Parent = game.CoreGui
 
-    Name = "Auto Ram",
+local ram = Instance.new("TextButton")
+ram.Size = UDim2.new(0,90,0,40)
+ram.Position = UDim2.new(0,10,0,10)
+ram.Text = "RAM"
+ram.TextScaled = true
+ram.Visible = false
+ram.Parent = gui
 
-    Callback = function()
+local rc = Instance.new("UICorner")
+rc.Parent = ram
 
-        autoRam()
+ram.MouseButton1Click:Connect(autoRam)
 
+local dashBtn = Instance.new("TextButton")
+dashBtn.Size = UDim2.new(0,90,0,40)
+dashBtn.Position = UDim2.new(0,10,0,60)
+dashBtn.Text = "DASH"
+dashBtn.TextScaled = true
+dashBtn.Visible = false
+dashBtn.Parent = gui
+
+local dc = Instance.new("UICorner")
+dc.Parent = dashBtn
+
+dashBtn.MouseButton1Click:Connect(dash)
+
+----------------
+-- TOGGLES
+----------------
+
+MainTab:CreateSlider({
+    Name = "Dash Strength",
+    Range = {5,100},
+    Increment = 1,
+    CurrentValue = dashStrength,
+    Callback = function(v)
+        dashStrength = v
     end
-
 })
+
+MainTab:CreateToggle({
+    Name = "Dash Button",
+    CurrentValue = false,
+    Callback = function(v)
+        dashBtn.Visible = v
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Ram Button",
+    CurrentValue = false,
+    Callback = function(v)
+        ram.Visible = v
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    gui.Enabled = ram.Visible or dashBtn.Visible
+end)
