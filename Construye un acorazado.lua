@@ -387,3 +387,74 @@ MainTab:CreateButton({
     end
 
 })
+
+----------------
+-- AUTO RAM
+----------------
+
+local function getClosestEnemyBoat()
+
+    local myBoat = getMyBoat()
+    if not myBoat then return nil end
+
+    local myRoot = myBoat:FindFirstChild("BoatRoot") or myBoat.PrimaryPart
+    if not myRoot then return nil end
+
+    local closestBoat = nil
+    local closestDist = math.huge
+
+    for _,boat in pairs(BoatsFolder:GetChildren()) do
+
+        if not tostring(boat.Name):lower():find(player.Name:lower()) then
+
+            local root = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
+
+            if root then
+
+                local dist = (myRoot.Position - root.Position).Magnitude
+
+                if dist < closestDist then
+                    closestDist = dist
+                    closestBoat = root
+                end
+
+            end
+
+        end
+
+    end
+
+    return closestBoat
+
+end
+
+
+local function autoRam()
+
+    local myBoat = getMyBoat()
+    if not myBoat then return end
+
+    local myRoot = myBoat:FindFirstChild("BoatRoot") or myBoat.PrimaryPart
+    if not myRoot then return end
+
+    local enemyRoot = getClosestEnemyBoat()
+    if not enemyRoot then return end
+
+    local direction = (enemyRoot.Position - myRoot.Position).Unit
+
+    myRoot.AssemblyLinearVelocity += direction * 90
+
+end
+
+
+MainTab:CreateButton({
+
+    Name = "Auto Ram",
+
+    Callback = function()
+
+        autoRam()
+
+    end
+
+})
