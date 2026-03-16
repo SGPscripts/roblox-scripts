@@ -206,3 +206,130 @@ BoatsFolder.ChildAdded:Connect(function(boat)
       highlight.Parent = boat
    end
 end)
+
+-- boat noclip + boat dash (impulso seguro) para SGP hub (rayfield)
+local BoatsFolder = workspace:WaitForChild("ActiveBoats")
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- ui: asume MainTab ya existe
+if not MainTab then
+    if Rayfield then
+        MainTab = Rayfield:CreateTab("Main", 4483362458)
+    else
+        error("Rayfield o MainTab no encontrado")
+    end
+end
+
+local originalCanCollide = {}
+local noclipActive = false
+local dashStrength = 20 -- default
+local dashMaxVel = 200  -- seguridad
+
+local function getMyBoat()
+    local namePattern = player.Name .. "_Boat"
+    for _, m in pairs(BoatsFolder:GetChildren()) do
+        if m.Name == namePattern then return m end
+    end
+    for _, m in pairs(BoatsFolder:GetChildren()) do
+        if tostring(m.Name):lower():find(player.Name:lower()) then return m end
+    end
+    return nil
+end
+
+local function setBoatNoclip(boat, state)
+    if not boat then return end
+    if state then
+        originalCanCollide = {}
+        for _, v in pairs(boat:GetDescendants()) do
+            if v:IsA("BasePart") then
+                originalCanCollide[v] = v.CanCollide
+                pcall(function() v.CanCollide = false end)
+            end
+        end
+        noclipActive = true
+        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "boat noclip activado", Duration = 2 }) end
+    else
+        for part, val in pairs(originalCanCollide) do
+            if part and part.Parent then
+                pcall(function() part.CanCollide = val end)
+            end
+        end
+        originalCanCollide = {}
+        noclipActive = false
+        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "boat noclip desactivado", Duration = 2 }) end
+    end
+end
+
+local function safeClamp(vec, maxMag)
+    local mag = vec.Magnitude
+    if mag > maxMag then
+        return vec.Unit * maxMag
+    end
+    return vec
+end
+
+local function doBoatDash()
+    local boat = getMyBoat()
+    if not boat then
+        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "no se encontró tu barco.", Duration = 3 }) end
+        return
+    end
+
+    local boatRoot = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
+    if not boatRoot then
+        if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "BoatRoot no encontrado.", Duration = 3 }) end
+        return
+    end
+
+    -- seguridad: leer velocidad actual
+    local ok, currVel = pcall(function() return boatRoot.AssemblyLinearVelocity end)
+    if not ok or not currVel then currVel = Vector3.new(0,0,0) end
+
+    -- calcular impulso en la dirección forward del boatRoot
+    local forward = boatRoot.CFrame.LookVector
+    local boostVec = forward * dashStrength
+
+    -- nuevo vector + clamp para no pasarnos
+    local newVel = currVel + boostVec
+    newVel = safeClamp(newVel, dashMaxVel)
+
+    -- aplicar UNA sola vez (impulso corto)
+    pcall(function()
+        boatRoot.AssemblyLinearVelocity = newVel
+    end)
+
+    if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "dash aplicado :D", Duration = 1.5 }) end
+end
+
+-- UI: slider para dash strength (5..100) y toggle noclip + botón dash
+MainTab:CreateSlider({
+    Name = "Dash Strength",
+    Range = {5, 100},
+    Increment = 1,
+    CurrentValue = dashStrength,
+    Flag = "BoatDashStrength",
+    Callback = function(val)
+        dashStrength = val
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Boat Noclip",
+    CurrentValue = false,
+    Callback = function(val)
+        local boat = getMyBoat()
+        if val then
+            if boat then setBoatNoclip(boat, true) else if Rayfield then Rayfield:Notify({ Title = "SGP", Content = "no se encontró tu barco.", Duration = 3 }) end end
+        else
+            setBoatNoclip(getMyBoat(), false)
+        end
+    end
+})
+
+MainTab:CreateButton({
+    Name = "Boat Dash (impulso)",
+    Callback = function()
+        doBoatDash()
+    end
+})
