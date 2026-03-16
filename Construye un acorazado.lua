@@ -1,5 +1,5 @@
--- SGP hub (completo): rayfield + ship fly (pc/móvil) + esp con nombre/distancia + boat dash
--- sin noclip
+-- SGP hub (fixes): rayfield + ship fly (pc/móvil) + esp con nombre/distancia + boat dash
+-- cambios: billboard texto más chico; stopFly seguro (no da callback error)
 
 -- cargar rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -16,7 +16,7 @@ local MainTab = Window:CreateTab("Main", 4483362458)
 -- servicios y vars generales
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 ---------------------
@@ -35,6 +35,7 @@ local function createButtons()
     local gui = Instance.new("ScreenGui")
     gui.Name = "SGP_FLY_GUI"
     gui.ResetOnSpawn = false
+    -- usar CoreGui (funciona en la mayoría de ejecuciones)
     gui.Parent = game:GetService("CoreGui")
 
     upButton = Instance.new("TextButton")
@@ -85,11 +86,26 @@ local function removeButtons()
     goingDown = false
 end
 
+local function safeUnbind(name)
+    -- Unbind en pcall por si no está o da error en ese contexto
+    pcall(function()
+        if RunService.IsBoundToRenderStep and RunService:IsBoundToRenderStep(name) then
+            RunService:UnbindFromRenderStep(name)
+        else
+            -- algunos entornos no tienen IsBoundToRenderStep; intentar unbind igual en pcall
+            RunService:UnbindFromRenderStep(name)
+        end
+    end)
+end
+
 local function startFly()
     if flying then return end
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart", 5)
     if not hrp then return end
+
+    -- si por casualidad ya había un bind, lo quitamos antes
+    safeUnbind("SGP_FLY")
 
     bv = Instance.new("BodyVelocity")
     bv.Name = "SGP_BodyVelocity"
@@ -105,16 +121,17 @@ local function startFly()
     createButtons()
 
     flying = true
+    -- bind seguro
     RunService:BindToRenderStep("SGP_FLY", Enum.RenderPriority.Character.Value, function()
         if not flying then return end
         local char2 = player.Character
         if not char2 or not char2.Parent then
-            -- personaje muerto o salido
+            -- personaje muerto o salido: cleanup seguro
             flying = false
             removeButtons()
-            if bv and bv.Parent then bv:Destroy() end
-            if bg and bg.Parent then bg:Destroy() end
-            RunService:UnbindFromRenderStep("SGP_FLY")
+            pcall(function() if bv and bv.Parent then bv:Destroy() end end)
+            pcall(function() if bg and bg.Parent then bg:Destroy() end end)
+            safeUnbind("SGP_FLY")
             return
         end
 
@@ -122,12 +139,12 @@ local function startFly()
         local move = Vector3.new(0,0,0)
 
         -- input pc
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then move = move - Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then move = move - Vector3.new(0,1,0) end
 
         -- móvil: usar MoveDirection para dirección horizontal
         local humanoid = char2:FindFirstChildOfClass("Humanoid")
@@ -144,20 +161,21 @@ local function startFly()
         end
 
         if bv then
-            bv.Velocity = move * speed
+            pcall(function() bv.Velocity = move * speed end)
         end
         if bg and char2:FindFirstChild("HumanoidRootPart") then
-            bg.CFrame = cam.CFrame
+            pcall(function() bg.CFrame = cam.CFrame end)
         end
     end)
 end
 
 local function stopFly()
-    if RunService:IsBoundToRenderStep("SGP_FLY") then
-        RunService:UnbindFromRenderStep("SGP_FLY")
-    end
-    if bv and bv.Parent then bv:Destroy() end
-    if bg and bg.Parent then bg:Destroy() end
+    -- unbind seguro para evitar callback errors
+    safeUnbind("SGP_FLY")
+
+    pcall(function() if bv and bv.Parent then bv:Destroy() end end)
+    pcall(function() if bg and bg.Parent then bg:Destroy() end end)
+
     removeButtons()
     flying = false
 end
@@ -176,12 +194,19 @@ MainTab:CreateToggle({
    Name = "Ship Fly",
    CurrentValue = false,
    Callback = function(Value)
-      if Value then startFly() else stopFly() end
+      if Value then
+         -- start en pcall para capturar errores si algo falla
+         local ok, err = pcall(startFly)
+         if not ok and Rayfield then Rayfield:Notify({Title = "SGP", Content = "error al iniciar fly: "..tostring(err), Duration = 4}) end
+      else
+         local ok, err = pcall(stopFly)
+         if not ok and Rayfield then Rayfield:Notify({Title = "SGP", Content = "error al detener fly: "..tostring(err), Duration = 4}) end
+      end
    end
 })
 
 ---------------------
--- ESP con nombre y distancia
+-- ESP con nombre y distancia (billboard con texto chico)
 ---------------------
 local BoatsFolder = workspace:WaitForChild("ActiveBoats")
 local espEnabled = false
@@ -194,18 +219,22 @@ local function createBoatESP(boat)
     if not root then return end
 
     -- highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "SGP_ESP_HL"
-    highlight.FillColor = Color3.fromRGB(255,0,0)
-    highlight.OutlineColor = Color3.fromRGB(255,255,255)
-    highlight.FillTransparency = 0.5
-    highlight.Parent = boat
+    local ok, highlight = pcall(function()
+        local h = Instance.new("Highlight")
+        h.Name = "SGP_ESP_HL"
+        h.FillColor = Color3.fromRGB(255,0,0)
+        h.OutlineColor = Color3.fromRGB(255,255,255)
+        h.FillTransparency = 0.6
+        h.Parent = boat
+        return h
+    end)
+    if not ok then return end
 
-    -- billboard para nombre + distancia
+    -- billboard para nombre + distancia (texto más chico)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "SGP_NAME"
-    billboard.Size = UDim2.new(0,180,0,50)
-    billboard.StudsOffset = Vector3.new(0,8,0)
+    billboard.Size = UDim2.new(0,140,0,36)
+    billboard.StudsOffset = Vector3.new(0,6,0)
     billboard.AlwaysOnTop = true
     billboard.Parent = root
 
@@ -213,8 +242,10 @@ local function createBoatESP(boat)
     text.Size = UDim2.new(1,0,1,0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.new(1,1,1)
-    text.TextStrokeTransparency = 0
-    text.TextScaled = true
+    text.TextStrokeTransparency = 0.6
+    text.TextScaled = false           -- importante: no usar TextScaled para controlar tamaño
+    text.TextSize = 14                -- tamaño pequeño y legible (ajustalo si querés)
+    text.TextWrapped = true
     text.Font = Enum.Font.SourceSansBold
     text.Text = ""
     text.Parent = billboard
@@ -263,7 +294,7 @@ end
 local function disableESP()
     espEnabled = false
     if espUpdateConn then
-        espUpdateConn:Disconnect()
+        pcall(function() espUpdateConn:Disconnect() end)
         espUpdateConn = nil
     end
     for boat, _ in pairs(espGuis) do
