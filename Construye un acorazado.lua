@@ -161,3 +161,48 @@ MainTab:CreateToggle({
 
    end
 })
+
+local BoatsFolder = workspace:WaitForChild("ActiveBoats")
+local player = game.Players.LocalPlayer
+local espEnabled = false
+
+MainTab:CreateToggle({
+   Name = "Enemy Ship ESP",
+   CurrentValue = false,
+   Callback = function(Value)
+      espEnabled = Value
+
+      if espEnabled then
+         for _,boat in pairs(BoatsFolder:GetChildren()) do
+            if not boat.Name:find(player.Name) then
+               if not boat:FindFirstChild("SGP_ESP") then
+                  local highlight = Instance.new("Highlight")
+                  highlight.Name = "SGP_ESP"
+                  highlight.FillColor = Color3.fromRGB(255,0,0)
+                  highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                  highlight.FillTransparency = 0.5
+                  highlight.Parent = boat
+               end
+            end
+         end
+      else
+         for _,boat in pairs(BoatsFolder:GetChildren()) do
+            local esp = boat:FindFirstChild("SGP_ESP")
+            if esp then
+               esp:Destroy()
+            end
+         end
+      end
+   end
+})
+
+BoatsFolder.ChildAdded:Connect(function(boat)
+   if espEnabled and not boat.Name:find(player.Name) then
+      local highlight = Instance.new("Highlight")
+      highlight.Name = "SGP_ESP"
+      highlight.FillColor = Color3.fromRGB(255,0,0)
+      highlight.OutlineColor = Color3.fromRGB(255,255,255)
+      highlight.FillTransparency = 0.5
+      highlight.Parent = boat
+   end
+end)
