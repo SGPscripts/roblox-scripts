@@ -1,5 +1,5 @@
 -- SGP hub (fixes): rayfield + ship fly (pc/móvil) + esp con nombre/distancia + boat dash
--- cambios: billboard texto más chico; stopFly seguro (no da callback error)
+-- fixes: billboard muy chico; stopFly usa desconexión segura (no más callback error)
 
 -- cargar rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -29,13 +29,13 @@ local goingUp = false
 local goingDown = false
 
 local upButton, downButton
+local flyConnection = nil
 
 local function createButtons()
     if upButton and upButton.Parent then return end
     local gui = Instance.new("ScreenGui")
     gui.Name = "SGP_FLY_GUI"
     gui.ResetOnSpawn = false
-    -- usar CoreGui (funciona en la mayoría de ejecuciones)
     gui.Parent = game:GetService("CoreGui")
 
     upButton = Instance.new("TextButton")
@@ -86,26 +86,17 @@ local function removeButtons()
     goingDown = false
 end
 
-local function safeUnbind(name)
-    -- Unbind en pcall por si no está o da error en ese contexto
-    pcall(function()
-        if RunService.IsBoundToRenderStep and RunService:IsBoundToRenderStep(name) then
-            RunService:UnbindFromRenderStep(name)
-        else
-            -- algunos entornos no tienen IsBoundToRenderStep; intentar unbind igual en pcall
-            RunService:UnbindFromRenderStep(name)
-        end
-    end)
-end
-
 local function startFly()
     if flying then return end
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart", 5)
     if not hrp then return end
 
-    -- si por casualidad ya había un bind, lo quitamos antes
-    safeUnbind("SGP_FLY")
+    -- cleanup si quedaba conexión vieja
+    if flyConnection then
+        pcall(function() flyConnection:Disconnect() end)
+        flyConnection = nil
+    end
 
     bv = Instance.new("BodyVelocity")
     bv.Name = "SGP_BodyVelocity"
@@ -121,8 +112,7 @@ local function startFly()
     createButtons()
 
     flying = true
-    -- bind seguro
-    RunService:BindToRenderStep("SGP_FLY", Enum.RenderPriority.Character.Value, function()
+    flyConnection = RunService.RenderStepped:Connect(function()
         if not flying then return end
         local char2 = player.Character
         if not char2 or not char2.Parent then
@@ -131,7 +121,8 @@ local function startFly()
             removeButtons()
             pcall(function() if bv and bv.Parent then bv:Destroy() end end)
             pcall(function() if bg and bg.Parent then bg:Destroy() end end)
-            safeUnbind("SGP_FLY")
+            if flyConnection then pcall(function() flyConnection:Disconnect() end) end
+            flyConnection = nil
             return
         end
 
@@ -170,8 +161,11 @@ local function startFly()
 end
 
 local function stopFly()
-    -- unbind seguro para evitar callback errors
-    safeUnbind("SGP_FLY")
+    -- desconectar la conexión si existe
+    if flyConnection then
+        pcall(function() flyConnection:Disconnect() end)
+        flyConnection = nil
+    end
 
     pcall(function() if bv and bv.Parent then bv:Destroy() end end)
     pcall(function() if bg and bg.Parent then bg:Destroy() end end)
@@ -195,7 +189,6 @@ MainTab:CreateToggle({
    CurrentValue = false,
    Callback = function(Value)
       if Value then
-         -- start en pcall para capturar errores si algo falla
          local ok, err = pcall(startFly)
          if not ok and Rayfield then Rayfield:Notify({Title = "SGP", Content = "error al iniciar fly: "..tostring(err), Duration = 4}) end
       else
@@ -206,7 +199,7 @@ MainTab:CreateToggle({
 })
 
 ---------------------
--- ESP con nombre y distancia (billboard con texto chico)
+-- ESP con nombre y distancia (billboard muy chico)
 ---------------------
 local BoatsFolder = workspace:WaitForChild("ActiveBoats")
 local espEnabled = false
@@ -230,11 +223,11 @@ local function createBoatESP(boat)
     end)
     if not ok then return end
 
-    -- billboard para nombre + distancia (texto más chico)
+    -- billboard para nombre + distancia (MUY chico)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "SGP_NAME"
-    billboard.Size = UDim2.new(0,140,0,36)
-    billboard.StudsOffset = Vector3.new(0,6,0)
+    billboard.Size = UDim2.new(0,80,0,16)
+    billboard.StudsOffset = Vector3.new(0,4,0)
     billboard.AlwaysOnTop = true
     billboard.Parent = root
 
@@ -242,9 +235,9 @@ local function createBoatESP(boat)
     text.Size = UDim2.new(1,0,1,0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.new(1,1,1)
-    text.TextStrokeTransparency = 0.6
-    text.TextScaled = false           -- importante: no usar TextScaled para controlar tamaño
-    text.TextSize = 14                -- tamaño pequeño y legible (ajustalo si querés)
+    text.TextStrokeTransparency = 0.8
+    text.TextScaled = false
+    text.TextSize = 8          -- casi invisible
     text.TextWrapped = true
     text.Font = Enum.Font.SourceSansBold
     text.Text = ""
@@ -273,6 +266,7 @@ local function enableESP()
         end
     end
     -- actualizar cada frame
+    if espUpdateConn then pcall(function() espUpdateConn:Disconnect() end) end
     espUpdateConn = RunService.RenderStepped:Connect(function()
         if not espEnabled then return end
         local char = player.Character
@@ -333,64 +327,8 @@ local function getMyBoat()
     for _, m in pairs(BoatsFolder:GetChildren()) do
         if m.Name == namePattern then return m end
     end
-    for _, m in pairs(BoatsFolder:GetChildren()) do
-        if tostring(m.Name):lower():find(player.Name:lower()) then return m end
-    end
-    return nil
-end
+We must finish script; user asked for full. Last message truncated at end. Need include rest of boat dash code (getMyBoat, safeClamp, doBoatDash, UI slider and button). Provide complete final script. Ensure no noclip code. Let's craft complete script from earlier but with fixes (flyConnection, small billboard). Also ensure espUpdateConn variable defined. Also ensure we didn't duplicate BoatsFolder variable earlier — BoatsFolder defined inside ESP block, but also used in getMyBoat functions; earlier in script they defined BoatsFolder at top of ESP. It's fine.
 
-local function safeClamp(vec, maxMag)
-    local mag = vec.Magnitude
-    if mag > maxMag then
-        return vec.Unit * maxMag
-    end
-    return vec
-end
+We must append ending code for dash.
 
-local function doBoatDash()
-    local boat = getMyBoat()
-    if not boat then
-        Rayfield:Notify({ Title = "SGP", Content = "no se encontró tu barco.", Duration = 3 })
-        return
-    end
-
-    local boatRoot = boat:FindFirstChild("BoatRoot") or boat.PrimaryPart
-    if not boatRoot then
-        Rayfield:Notify({ Title = "SGP", Content = "BoatRoot no encontrado.", Duration = 3 })
-        return
-    end
-
-    local ok, currVel = pcall(function() return boatRoot.AssemblyLinearVelocity end)
-    if not ok or not currVel then currVel = Vector3.new(0,0,0) end
-
-    local forward = boatRoot.CFrame.LookVector
-    local boostVec = forward * dashStrength
-
-    local newVel = currVel + boostVec
-    newVel = safeClamp(newVel, dashMaxVel)
-
-    pcall(function()
-        boatRoot.AssemblyLinearVelocity = newVel
-    end)
-
-    Rayfield:Notify({ Title = "SGP", Content = "dash aplicado :D", Duration = 1.5 })
-end
-
--- UI: slider para dash strength y botón dash
-MainTab:CreateSlider({
-    Name = "Dash Strength",
-    Range = {5, 100},
-    Increment = 1,
-    CurrentValue = dashStrength,
-    Flag = "BoatDashStrength",
-    Callback = function(val)
-        dashStrength = val
-    end
-})
-
-MainTab:CreateButton({
-    Name = "Boat Dash (impulso)",
-    Callback = function()
-        doBoatDash()
-    end
-})
+Write final output only code block. Let's produce final full script.
