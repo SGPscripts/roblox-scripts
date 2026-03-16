@@ -136,7 +136,7 @@ end
 
 -- slider velocidad
 MainTab:CreateSlider({
-   Name = "Fly Speed",
+   Name = "Ship Fly Speed",
    Range = {20, 200},
    Increment = 5,
    CurrentValue = 80,
@@ -147,7 +147,7 @@ MainTab:CreateSlider({
 
 -- toggle fly
 MainTab:CreateToggle({
-   Name = "VFly",
+   Name = "Ship Fly",
    CurrentValue = false,
    Callback = function(Value)
 
