@@ -321,3 +321,77 @@ MainTab:CreateButton({
         end)
     end
 })
+--// view ult players (death counter esp)
+
+local ViewUlt = false
+local UltHighlights = {}
+
+-- loop
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+
+        if ViewUlt then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+
+                    local hasUlt = false
+
+                    -- revisar tools en character
+                    for _, v in pairs(plr.Character:GetChildren()) do
+                        if v:IsA("Tool") and v.Name == "Death Counter" then
+                            hasUlt = true
+                            break
+                        end
+                    end
+
+                    -- revisar backpack
+                    if not hasUlt and plr:FindFirstChild("Backpack") then
+                        for _, v in pairs(plr.Backpack:GetChildren()) do
+                            if v:IsA("Tool") and v.Name == "Death Counter" then
+                                hasUlt = true
+                                break
+                            end
+                        end
+                    end
+
+                    -- aplicar highlight
+                    if hasUlt then
+                        if not UltHighlights[plr] then
+                            local hl = Instance.new("Highlight")
+                            hl.FillColor = Color3.fromRGB(255, 0, 0)
+                            hl.OutlineColor = Color3.fromRGB(255,255,255)
+                            hl.FillTransparency = 0.5
+                            hl.Parent = plr.Character
+
+                            UltHighlights[plr] = hl
+                        end
+                    else
+                        if UltHighlights[plr] then
+                            UltHighlights[plr]:Destroy()
+                            UltHighlights[plr] = nil
+                        end
+                    end
+
+                end
+            end
+        else
+            -- limpiar todo
+            for plr, hl in pairs(UltHighlights) do
+                if hl then
+                    hl:Destroy()
+                end
+                UltHighlights[plr] = nil
+            end
+        end
+    end
+end)
+
+-- toggle en rayfield
+MainTab:CreateToggle({
+    Name = "View Ult Players",
+    CurrentValue = false,
+    Callback = function(v)
+        ViewUlt = v
+    end
+})
