@@ -75,6 +75,51 @@ local lastSpectated = nil
 
 --// noclip
 local function noclip(char)
+    -- ANTI DEATH COUNTER + ESCAPE
+local DangerDistance = 5
+
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+
+        local function hasUlt(p)
+            for _, v in pairs(p.Character:GetChildren()) do
+                if v:IsA("Tool") and v.Name == "Death Counter" then
+                    return true
+                end
+            end
+            if p:FindFirstChild("Backpack") then
+                for _, v in pairs(p.Backpack:GetChildren()) do
+                    if v:IsA("Tool") and v.Name == "Death Counter" then
+                        return true
+                    end
+                end
+            end
+            return false
+        end
+
+        if hasUlt(plr) then
+            local dist = (
+                plr.Character.HumanoidRootPart.Position -
+                char.HumanoidRootPart.Position
+            ).Magnitude
+
+            if dist <= DangerDistance then
+                for _, safePlr in pairs(Players:GetPlayers()) do
+                    if safePlr ~= LocalPlayer
+                    and safePlr.Character
+                    and safePlr.Character:FindFirstChild("HumanoidRootPart")
+                    and not hasUlt(safePlr) then
+
+                        char.HumanoidRootPart.CFrame =
+                            safePlr.Character.HumanoidRootPart.CFrame + Vector3.new(0,-7,0)
+
+                        return
+                    end
+                end
+            end
+        end
+    end
+    end
     for _, v in pairs(char:GetDescendants()) do
         if v:IsA("BasePart") then
             v.CanCollide = false
