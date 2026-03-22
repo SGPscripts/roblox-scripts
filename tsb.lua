@@ -55,8 +55,6 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("main")
-
--- nueva tab para players (exclusiones)
 local PlayerTab = Window:CreateTab("players")
 
 --// variables
@@ -65,7 +63,6 @@ local AutoSpam = false
 local AutofarmConn
 local SpectateZoom = 8
 
--- tabla de jugadores excluidos (key = player.Name)
 local ExcludedPlayers = {}
 
 --// cam state
@@ -73,9 +70,16 @@ local originalCameraSubject = nil
 local originalCameraType = nil
 local lastSpectated = nil
 
---// noclip
+--// noclip FIXED
 local function noclip(char)
---// get closest player (ignora excluidos y players sin humanoid / muertos)
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+        end
+    end
+end
+
+--// get closest player
 local function getClosestPlayer()
     local closest = nil
     local dist = math.huge
@@ -118,7 +122,6 @@ local function spectateTarget(plr)
         originalCameraType = Camera.CameraType
     end
 
-    -- permitir cambiar la posicion de la camara si cambia el target
     if lastSpectated == plr then return end
 
     local lookVec = hrp.CFrame.LookVector
@@ -156,7 +159,7 @@ local function resetCamera()
     end)
 end
 
---// autofarm
+--// autofarm NORMAL (sin anti ult)
 local function startAutofarm()
     AutofarmConn = RunService.Heartbeat:Connect(function()
         if not Autofarm then return end
@@ -267,12 +270,11 @@ MainTab:CreateSlider({
     end
 })
 
---// helpers para la tab de players (crear toggles dinamicamente)
+--// players tab
 local function createPlayerToggle(plr)
     if not plr or not plr.Name then return end
     if plr == LocalPlayer then return end
 
-    -- crear toggle para excluir/permitir target
     PlayerTab:CreateToggle({
         Name = "excluir "..plr.Name,
         CurrentValue = ExcludedPlayers[plr.Name] == true,
@@ -286,19 +288,15 @@ local function createPlayerToggle(plr)
     })
 end
 
--- crear toggles iniciales
 for _, plr in pairs(Players:GetPlayers()) do
     createPlayerToggle(plr)
 end
 
--- cuando entra un jugador nuevo, le creamos el toggle
 Players.PlayerAdded:Connect(function(plr)
-    -- esperar un tick para que Rayfield no rompa si crea muchas cosas de golpe
     task.wait(0.1)
     createPlayerToggle(plr)
 end)
 
--- cuando un jugador sale, limpiamos la exclusion
 Players.PlayerRemoving:Connect(function(plr)
     ExcludedPlayers[plr.Name] = nil
 end)
@@ -312,79 +310,5 @@ MainTab:CreateButton({
                 "https://rawscripts.net/raw/The-Strongest-Battlegrounds-TSB-TrashCanMan-Moveset-55951"
             ))()
         end)
-    end
-})
---// view ult players (death counter esp)
-
-local ViewUlt = false
-local UltHighlights = {}
-
--- loop
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-
-        if ViewUlt then
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer and plr.Character then
-
-                    local hasUlt = false
-
-                    -- revisar tools en character
-                    for _, v in pairs(plr.Character:GetChildren()) do
-                        if v:IsA("Tool") and v.Name == "Death Counter" then
-                            hasUlt = true
-                            break
-                        end
-                    end
-
-                    -- revisar backpack
-                    if not hasUlt and plr:FindFirstChild("Backpack") then
-                        for _, v in pairs(plr.Backpack:GetChildren()) do
-                            if v:IsA("Tool") and v.Name == "Death Counter" then
-                                hasUlt = true
-                                break
-                            end
-                        end
-                    end
-
-                    -- aplicar highlight
-                    if hasUlt then
-                        if not UltHighlights[plr] then
-                            local hl = Instance.new("Highlight")
-                            hl.FillColor = Color3.fromRGB(255, 0, 0)
-                            hl.OutlineColor = Color3.fromRGB(255,255,255)
-                            hl.FillTransparency = 0.5
-                            hl.Parent = plr.Character
-
-                            UltHighlights[plr] = hl
-                        end
-                    else
-                        if UltHighlights[plr] then
-                            UltHighlights[plr]:Destroy()
-                            UltHighlights[plr] = nil
-                        end
-                    end
-
-                end
-            end
-        else
-            -- limpiar todo
-            for plr, hl in pairs(UltHighlights) do
-                if hl then
-                    hl:Destroy()
-                end
-                UltHighlights[plr] = nil
-            end
-        end
-    end
-end)
-
--- toggle en rayfield
-MainTab:CreateToggle({
-    Name = "View Ult Players",
-    CurrentValue = false,
-    Callback = function(v)
-        ViewUlt = v
     end
 })
