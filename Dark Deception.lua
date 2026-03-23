@@ -91,3 +91,18 @@ TeleportTab:CreateButton({
         end
     end,
 })
+
+-- botón TP a la salida
+TeleportTab:CreateButton({
+    Name = "TP to Exit",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+
+        local exit = workspace:FindFirstChild("ExitPortal")
+        if exit and exit:IsA("BasePart") then
+            hrp.CFrame = exit.CFrame + Vector3.new(0, 3, 0)
+        end
+    end,
+})
