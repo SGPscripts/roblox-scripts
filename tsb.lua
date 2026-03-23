@@ -70,7 +70,7 @@ local originalCameraSubject = nil
 local originalCameraType = nil
 local lastSpectated = nil
 
---// noclip FIXED
+--// noclip
 local function noclip(char)
     for _, v in pairs(char:GetDescendants()) do
         if v:IsA("BasePart") then
@@ -146,9 +146,9 @@ end
 
 local function resetCamera()
     pcall(function()
-        if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             Camera.CameraType = Enum.CameraType.Custom
-            Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+            Camera.CameraSubject = LocalPlayer.Character.Humanoid
         else
             Camera.CameraType = originalCameraType or Enum.CameraType.Custom
             if originalCameraSubject then
@@ -202,7 +202,6 @@ local function stopAutofarm()
         AutofarmConn:Disconnect()
         AutofarmConn = nil
     end
-
     resetCamera()
 end
 
@@ -243,11 +242,7 @@ MainTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         Autofarm = v
-        if v then
-            startAutofarm()
-        else
-            stopAutofarm()
-        end
+        if v then startAutofarm() else stopAutofarm() end
     end
 })
 
@@ -259,7 +254,6 @@ MainTab:CreateToggle({
     end
 })
 
---// slider zoom
 MainTab:CreateSlider({
     Name = "spectate zoom",
     Range = {3,20},
@@ -272,20 +266,19 @@ MainTab:CreateSlider({
 
 --// players tab
 local function createPlayerToggle(plr)
-    if not plr or not plr.Name then return end
-    if plr == LocalPlayer then return end
-
-    PlayerTab:CreateToggle({
-        Name = "excluir "..plr.Name,
-        CurrentValue = ExcludedPlayers[plr.Name] == true,
-        Callback = function(v)
-            if v then
-                ExcludedPlayers[plr.Name] = true
-            else
-                ExcludedPlayers[plr.Name] = nil
+    if plr ~= LocalPlayer then
+        PlayerTab:CreateToggle({
+            Name = "excluir "..plr.Name,
+            CurrentValue = ExcludedPlayers[plr.Name] == true,
+            Callback = function(v)
+                if v then
+                    ExcludedPlayers[plr.Name] = true
+                else
+                    ExcludedPlayers[plr.Name] = nil
+                end
             end
-        end
-    })
+        })
+    end
 end
 
 for _, plr in pairs(Players:GetPlayers()) do
@@ -301,158 +294,7 @@ Players.PlayerRemoving:Connect(function(plr)
     ExcludedPlayers[plr.Name] = nil
 end)
 
---// ult system completo
-
-local ViewUlt = false
-local UltPlayers = {}
-local UltHighlights = {}
-
--- detectar ult players cada 1 segundo
-task.spawn(function()
-    while true do
-        task.wait(1)
-
-        table.clear(UltPlayers)
-
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-
-                local hasUlt = false
-
-                -- character
-                for _, v in pairs(plr.Character:GetChildren()) do
-                    if v:IsA("Tool") and v.Name == "Death Counter" then
-                        hasUlt = true
-                        break
-                    end
-                end
-
-                -- backpack
-                if not hasUlt and plr:FindFirstChild("Backpack") then
-                    for _, v in pairs(plr.Backpack:GetChildren()) do
-                        if v:IsA("Tool") and v.Name == "Death Counter" then
-                            hasUlt = true
-                            break
-                        end
-                    end
-                end
-
-                if hasUlt then
-                    UltPlayers[plr] = true
-
-                    if ViewUlt then
-                        if not UltHighlights[plr] and plr.Character then
-                            local hl = Instance.new("Highlight")
-                            hl.FillColor = Color3.fromRGB(255, 0, 0)
-                            hl.OutlineColor = Color3.fromRGB(255,255,255)
-                            hl.FillTransparency = 0.5
-                            hl.Parent = plr.Character
-                            UltHighlights[plr] = hl
-                        end
-                    end
-                else
-                    if UltHighlights[plr] then
-                        UltHighlights[plr]:Destroy()
-                        UltHighlights[plr] = nil
-                    end
-                end
-
-            end
-        end
-
-        if not ViewUlt then
-            for plr, hl in pairs(UltHighlights) do
-                if hl then hl:Destroy() end
-                UltHighlights[plr] = nil
-            end
-        end
-    end
-end)
-
--- reemplazo de autofarm con anti ult
-local oldStart = startAutofarm
-function startAutofarm()
-    AutofarmConn = RunService.Heartbeat:Connect(function()
-        if not Autofarm then return end
-
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            resetCamera()
-            return
-        end
-
-        noclip(char)
-
-        local hrp = char.HumanoidRootPart
-
-        -- 👇 detectar peligro cerca (5 studs)
-        local danger = false
-        for plr, _ in pairs(UltPlayers) do
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local d = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-                if d <= 5 then
-                    danger = true
-                    break
-                end
-            end
-        end
-
-        local target = nil
-
-        if danger then
-            -- buscar el MAS LEJOS
-            local maxDist = 0
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer
-                and not ExcludedPlayers[plr.Name]
-                and not UltPlayers[plr]
-                and plr.Character
-                and plr.Character:FindFirstChild("HumanoidRootPart") then
-
-                    local d = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-                    if d > maxDist then
-                        maxDist = d
-                        target = plr
-                    end
-                end
-            end
-        else
-            target = getClosestPlayer()
-        end
-
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local thrp = target.Character.HumanoidRootPart
-
-            spectateTarget(target)
-
-            if lastSpectated == target then
-                updateSpectate(target)
-            end
-
-            local pos = Vector3.new(
-                thrp.Position.X,
-                thrp.Position.Y - 7,
-                thrp.Position.Z
-            )
-
-            hrp.CFrame = CFrame.lookAt(pos, thrp.Position)
-            hrp.Velocity = Vector3.zero
-        else
-            resetCamera()
-        end
-    end)
-end
-
--- toggle
-MainTab:CreateToggle({
-    Name = "View Ult Players",
-    CurrentValue = false,
-    Callback = function(v)
-        ViewUlt = v
-    end
-})
-
---// boton trashcanman
+--// boton
 MainTab:CreateButton({
     Name = "trashcanman",
     Callback = function()
