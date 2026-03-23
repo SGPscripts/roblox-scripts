@@ -305,3 +305,187 @@ MainTab:CreateButton({
         end)
     end
 })
+
+--// ult system PRO (death counter real)
+
+local ViewUlt = false
+local UltPlayers = {} -- [plr] = tiempo
+local UltState = {} -- "ready" / "used"
+local UltHighlights = {}
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+
+                local hasUlt = false
+
+                -- buscar tool en character
+                for _, v in pairs(plr.Character:GetChildren()) do
+                    if v:IsA("Tool") and v.Name == "Death Counter" then
+                        hasUlt = true
+                        break
+                    end
+                end
+
+                -- buscar en backpack
+                if not hasUlt and plr:FindFirstChild("Backpack") then
+                    for _, v in pairs(plr.Backpack:GetChildren()) do
+                        if v:IsA("Tool") and v.Name == "Death Counter" then
+                            hasUlt = true
+                            break
+                        end
+                    end
+                end
+
+                if hasUlt then
+                    -- tiene la ulti lista
+                    UltPlayers[plr] = tick()
+                    UltState[plr] = "ready"
+
+                else
+                    -- si antes la tenía → ahora la usó
+                    if UltState[plr] == "ready" then
+                        UltPlayers[plr] = tick()
+                        UltState[plr] = "used"
+                    end
+                end
+
+                -- limpiar después de 14s
+                if UltState[plr] == "used" then
+                    if tick() - (UltPlayers[plr] or 0) > 14 then
+                        UltPlayers[plr] = nil
+                        UltState[plr] = nil
+                    end
+                end
+
+                -- highlight
+                if ViewUlt then
+                    if UltState[plr] == "ready" then
+                        if not UltHighlights[plr] then
+                            local hl = Instance.new("Highlight")
+                            hl.FillColor = Color3.fromRGB(255, 0, 0) -- rojo
+                            hl.OutlineColor = Color3.fromRGB(255,255,255)
+                            hl.FillTransparency = 0.5
+                            hl.Parent = plr.Character
+                            UltHighlights[plr] = hl
+                        else
+                            UltHighlights[plr].FillColor = Color3.fromRGB(255, 0, 0)
+                        end
+
+                    elseif UltState[plr] == "used" then
+                        if not UltHighlights[plr] then
+                            local hl = Instance.new("Highlight")
+                            hl.FillColor = Color3.fromRGB(255, 255, 0) -- amarillo
+                            hl.OutlineColor = Color3.fromRGB(255,255,255)
+                            hl.FillTransparency = 0.5
+                            hl.Parent = plr.Character
+                            UltHighlights[plr] = hl
+                        else
+                            UltHighlights[plr].FillColor = Color3.fromRGB(255, 255, 0)
+                        end
+
+                    else
+                        if UltHighlights[plr] then
+                            UltHighlights[plr]:Destroy()
+                            UltHighlights[plr] = nil
+                        end
+                    end
+                end
+
+            end
+        end
+
+        if not ViewUlt then
+            for plr, hl in pairs(UltHighlights) do
+                if hl then hl:Destroy() end
+                UltHighlights[plr] = nil
+            end
+        end
+    end
+end)
+
+-- reemplazo autofarm con anti ult real
+local oldStart = startAutofarm
+function startAutofarm()
+    AutofarmConn = RunService.Heartbeat:Connect(function()
+        if not Autofarm then return end
+
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            resetCamera()
+            return
+        end
+
+        noclip(char)
+
+        local hrp = char.HumanoidRootPart
+
+        -- detectar peligro (jugadores en estado "used")
+        local danger = false
+        for plr, state in pairs(UltState) do
+            if state == "used" and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if d <= 5 then
+                    danger = true
+                    break
+                end
+            end
+        end
+
+        local target = nil
+
+        if danger then
+            -- ir al más lejos
+            local maxDist = 0
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer
+                and not ExcludedPlayers[plr.Name]
+                and not UltState[plr]
+                and plr.Character
+                and plr.Character:FindFirstChild("HumanoidRootPart") then
+
+                    local d = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                    if d > maxDist then
+                        maxDist = d
+                        target = plr
+                    end
+                end
+            end
+        else
+            target = getClosestPlayer()
+        end
+
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local thrp = target.Character.HumanoidRootPart
+
+            spectateTarget(target)
+
+            if lastSpectated == target then
+                updateSpectate(target)
+            end
+
+            local pos = Vector3.new(
+                thrp.Position.X,
+                thrp.Position.Y - 7,
+                thrp.Position.Z
+            )
+
+            hrp.CFrame = CFrame.lookAt(pos, thrp.Position)
+            hrp.Velocity = Vector3.zero
+        else
+            resetCamera()
+        end
+    end)
+end
+
+-- toggle
+MainTab:CreateToggle({
+    Name = "View Ult Players",
+    CurrentValue = false,
+    Callback = function(v)
+        ViewUlt = v
+    end
+})
