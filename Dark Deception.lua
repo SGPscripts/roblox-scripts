@@ -61,6 +61,59 @@ Tab:CreateButton({
     end,
 })
 
+-- variables anti monstruos
+local antiMonsters = false
+local spawnPosition = nil
+
+-- guardar spawn inicial
+task.spawn(function()
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    spawnPosition = hrp.CFrame
+end)
+
+-- toggle anti monstruos
+Tab:CreateToggle({
+    Name = "Anti Mounstros",
+    CurrentValue = false,
+    Callback = function(value)
+        antiMonsters = value
+
+        if antiMonsters then
+            task.spawn(function()
+                while antiMonsters do
+                    local player = game.Players.LocalPlayer
+                    local char = player.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                    local npcFolder = workspace:FindFirstChild("NPCs")
+
+                    if hrp and npcFolder then
+                        for _, npc in pairs(npcFolder:GetChildren()) do
+                            if npc:IsA("Model") then
+                                local npcPart = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+                                if npcPart then
+                                    local distance = (hrp.Position - npcPart.Position).Magnitude
+                                    
+                                    if distance <= 10 then
+                                        if spawnPosition then
+                                            hrp.CFrame = spawnPosition + Vector3.new(0, 3, 0)
+                                        end
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end,
+})
+
 -- tab teleports
 local TeleportTab = Window:CreateTab("Teleports", 4483362458)
 
