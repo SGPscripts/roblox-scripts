@@ -60,3 +60,34 @@ Tab:CreateButton({
         end)
     end,
 })
+
+-- tab teleports
+local TeleportTab = Window:CreateTab("Teleports", 4483362458)
+
+-- botón TP al orb
+TeleportTab:CreateButton({
+    Name = "TP to Orb",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+
+        local ringFolder = workspace:FindFirstChild("RingPiece")
+        if ringFolder then
+            local orb = ringFolder:FindFirstChild("Orb")
+            if orb then
+                local target
+
+                if orb:IsA("Model") then
+                    target = orb:GetPivot()
+                elseif orb:IsA("BasePart") then
+                    target = orb.CFrame
+                end
+
+                if target then
+                    hrp.CFrame = target + Vector3.new(0, 3, 0)
+                end
+            end
+        end
+    end,
+})
