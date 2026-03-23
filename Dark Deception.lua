@@ -17,3 +17,48 @@ local Window = Rayfield:CreateWindow({
 
 -- tab base
 local Tab = Window:CreateTab("Main", 4483362458)
+-- variables
+local shardAmount = 0
+local farming = false
+
+-- input (cantidad de shards)
+Tab:CreateInput({
+    Name = "Cantidad de Shards",
+    PlaceholderText = "Ej: 50",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        shardAmount = tonumber(text) or 0
+    end,
+})
+
+-- toggle auto shard
+Tab:CreateToggle({
+    Name = "Auto Shard",
+    CurrentValue = false,
+    Callback = function(value)
+        farming = value
+
+        if farming then
+            task.spawn(function()
+                local player = game.Players.LocalPlayer
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+
+                local collected = 0
+
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if not farming then break end
+                    if collected >= shardAmount then break end
+
+                    if v:IsA("BasePart") and v.Name == "Shard" then
+                        hrp.CFrame = v.CFrame + Vector3.new(0, 2, 0)
+                        collected += 1
+                        task.wait(0.25)
+                    end
+                end
+
+                farming = false
+            end)
+        end
+    end,
+})
