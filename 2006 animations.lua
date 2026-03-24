@@ -1,4 +1,4 @@
--- CUSTOM OLD ANIMATE (usando tus animaciones)
+-- CUSTOM OLD ANIMS (EXECUTOR FRIENDLY)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -6,11 +6,23 @@ local player = Players.LocalPlayer
 local function setup(char)
     local hum = char:WaitForChild("Humanoid")
 
-    -- borrar animate default
-    local animate = char:FindFirstChild("Animate")
-    if animate then animate:Destroy() end
+    -- eliminar animate
+    local function removeAnimate()
+        local a = char:FindFirstChild("Animate")
+        if a then a:Destroy() end
+    end
 
-    -- IDs tuyos
+    removeAnimate()
+
+    -- anti-restore
+    char.ChildAdded:Connect(function(child)
+        if child.Name == "Animate" then
+            task.wait()
+            child:Destroy()
+        end
+    end)
+
+    -- IDs
     local ids = {
         Idle = "rbxassetid://80247769204860",
         Walk = "rbxassetid://119207180977930",
@@ -32,65 +44,55 @@ local function setup(char)
         tracks[name] = track
     end
 
-    local function stopAll()
-        for _, t in pairs(tracks) do
-            t:Stop(0)
-        end
+    local current = nil
+
+    local function play(track, looped)
+        if current == track then return end
+        if current then current:Stop(0) end
+
+        current = track
+        track.Looped = looped or false
+        track:Play(0)
     end
 
-    -- IDLE
-    task.spawn(function()
-        while char.Parent do
-            stopAll()
-            tracks.Idle.Looped = true
-            tracks.Idle:Play(0)
-            task.wait(4)
-        end
-    end)
-
-    -- WALK
+    -- MOVIMIENTO
     hum.Running:Connect(function(speed)
         if speed > 1 then
-            stopAll()
-            tracks.Walk.Looped = true
-            tracks.Walk:Play(0)
+            play(tracks.Walk, true)
+        else
+            play(tracks.Idle, true)
         end
     end)
 
     -- JUMP
     hum.Jumping:Connect(function()
-        stopAll()
-        tracks.Jump:Play(0)
+        play(tracks.Jump, false)
     end)
 
     -- FALL
     hum.FreeFalling:Connect(function(state)
         if state then
-            stopAll()
-            tracks.Fall.Looped = true
-            tracks.Fall:Play(0)
+            play(tracks.Fall, true)
         end
     end)
 
     -- CLIMB
     hum.Climbing:Connect(function(speed)
         if speed > 0 then
-            stopAll()
-            tracks.Climb.Looped = true
-            tracks.Climb:Play(0)
+            play(tracks.Climb, true)
         end
     end)
 
-    -- TOOL DETECCIÓN
+    -- TOOL
     char.ChildAdded:Connect(function(child)
         if child:IsA("Tool") then
-            stopAll()
-            tracks.ToolIdle.Looped = true
-            tracks.ToolIdle:Play(0)
+
+            child.Equipped:Connect(function()
+                play(tracks.ToolIdle, true)
+            end)
 
             child.Activated:Connect(function()
-                stopAll()
-                tracks.Slash:Play(0)
+                play(tracks.Slash, false)
             end)
         end
     end)
