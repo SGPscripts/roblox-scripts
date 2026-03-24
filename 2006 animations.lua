@@ -1,117 +1,112 @@
--- ULTRA FIXED OLD ANIMS (ANTI TODO)
+--// OLD ROBLOX 2006 STYLE (DELTA EXECUTOR)
+-- sistema pulido basado en referencias reales R6
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local function setup(char)
     local hum = char:WaitForChild("Humanoid")
-    local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
+    local torso = char:WaitForChild("Torso")
 
-    -- 🔥 BORRAR ANIMATE + ANTI RESTORE
-    local function removeAnimate()
-        local a = char:FindFirstChild("Animate")
-        if a then a:Destroy() end
+    -- joints R6
+    local RS = torso:WaitForChild("Right Shoulder")
+    local LS = torso:WaitForChild("Left Shoulder")
+    local RH = torso:WaitForChild("Right Hip")
+    local LH = torso:WaitForChild("Left Hip")
+
+    -- offsets originales
+    local RS0, LS0 = RS.C0, LS.C0
+    local RH0, LH0 = RH.C0, LH.C0
+
+    -- estado
+    local state = "Idle"
+    local t = 0
+
+    -- parámetros estilo OLD
+    local WALK_SPEED = 0.18
+    local WALK_SWING = 0.32
+    local IDLE_SWAY = 0.04
+
+    local function setState(new)
+        state = new
     end
 
-    removeAnimate()
+    -- detectar tool
+    local holdingTool = false
 
-    char.ChildAdded:Connect(function(child)
-        if child.Name == "Animate" then
-            task.wait()
-            child:Destroy()
+    char.ChildAdded:Connect(function(obj)
+        if obj:IsA("Tool") then
+            holdingTool = true
+
+            obj.Unequipped:Connect(function()
+                holdingTool = false
+            end)
+
+            obj.Activated:Connect(function()
+                -- SLASH old simple
+                RS.C0 = RS0 * CFrame.Angles(-1.2,0,0)
+                task.wait(0.15)
+                RS.C0 = RS0
+            end)
         end
     end)
 
-    -- 🔥 IDS
-    local ids = {
-        Idle = "rbxassetid://80247769204860",
-        Walk = "rbxassetid://119207180977930",
-        Jump = "rbxassetid://128245637274553",
-        Fall = "rbxassetid://137268346972841",
-        Climb = "rbxassetid://85691845399452",
-        ToolIdle = "rbxassetid://76528794913854",
-        Lunge = "rbxassetid://106027613177784",
-        Slash = "rbxassetid://86426014331595"
-    }
-
-    local tracks = {}
-
-    for name, id in pairs(ids) do
-        local anim = Instance.new("Animation")
-        anim.AnimationId = id
-
-        local track = animator:LoadAnimation(anim)
-        track.Priority = Enum.AnimationPriority.Action4 -- 🔥 PRIORIDAD MÁXIMA
-        tracks[name] = track
-    end
-
-    -- 🔥 FUNCIÓN PARA MATAR TODAS LAS ANIMS (MUY IMPORTANTE)
-    local function stopAll()
-        for _, t in ipairs(hum:GetPlayingAnimationTracks()) do
-            t:Stop(0)
-        end
-    end
-
-    local current = ""
-
-    -- 🔥 LOOP AGRESIVO (CLAVE)
+    -- loop principal (IMPORTANTE)
     task.spawn(function()
-        while task.wait(0.08) do
-            if not hum or hum.Health <= 0 then continue end
-
-            -- matar todo lo q no sea tuyo
-            stopAll()
-
-            local state = hum:GetState()
+        while char.Parent do
             local speed = hum.MoveDirection.Magnitude
+            local humState = hum:GetState()
 
-            if state == Enum.HumanoidStateType.Climbing then
-                if current ~= "Climb" then
-                    tracks.Climb.Looped = true
-                    tracks.Climb:Play(0)
-                    current = "Climb"
-                end
-
-            elseif state == Enum.HumanoidStateType.Freefall then
-                if current ~= "Fall" then
-                    tracks.Fall.Looped = true
-                    tracks.Fall:Play(0)
-                    current = "Fall"
-                end
-
-            elseif state == Enum.HumanoidStateType.Jumping then
-                tracks.Jump:Play(0)
-                current = "Jump"
-
-            elseif speed > 0 then
-                if current ~= "Walk" then
-                    tracks.Walk.Looped = true
-                    tracks.Walk:Play(0)
-                    current = "Walk"
-                end
-
+            -- detectar estados reales
+            if humState == Enum.HumanoidStateType.Jumping then
+                setState("Jump")
+            elseif humState == Enum.HumanoidStateType.Freefall then
+                setState("Fall")
+            elseif speed > 0.1 then
+                setState("Walk")
             else
-                if current ~= "Idle" then
-                    tracks.Idle.Looped = true
-                    tracks.Idle:Play(0)
-                    current = "Idle"
-                end
+                setState("Idle")
             end
-        end
-    end)
 
-    -- 🔥 TOOLS
-    char.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") then
+            -- WALK (estilo 2006 real)
+            if state == "Walk" then
+                local swing = math.sin(t) * WALK_SWING
 
-            child.Equipped:Connect(function()
-                tracks.ToolIdle.Looped = true
-                tracks.ToolIdle:Play(0)
-            end)
+                RS.C0 = RS0 * CFrame.Angles(swing,0,0)
+                LS.C0 = LS0 * CFrame.Angles(-swing,0,0)
+                RH.C0 = RH0 * CFrame.Angles(-swing,0,0)
+                LH.C0 = LH0 * CFrame.Angles(swing,0,0)
 
-            child.Activated:Connect(function()
-                tracks.Slash:Play(0)
-            end)
+                t += WALK_SPEED
+
+            -- IDLE (casi sin movimiento)
+            elseif state == "Idle" then
+                local sway = math.sin(t) * IDLE_SWAY
+
+                RS.C0 = RS0 * CFrame.Angles(sway,0,0)
+                LS.C0 = LS0 * CFrame.Angles(-sway,0,0)
+                RH.C0 = RH0
+                LH.C0 = LH0
+
+                t += 0.05
+
+            -- JUMP (brazos adelante)
+            elseif state == "Jump" then
+                RS.C0 = RS0 * CFrame.Angles(-0.5,0,0)
+                LS.C0 = LS0 * CFrame.Angles(-0.5,0,0)
+
+            -- FALL (ligero forward)
+            elseif state == "Fall" then
+                RS.C0 = RS0 * CFrame.Angles(0.25,0,0)
+                LS.C0 = LS0 * CFrame.Angles(0.25,0,0)
+            end
+
+            -- TOOL IDLE (brazo arriba estilo espada vieja)
+            if holdingTool and state == "Idle" then
+                RS.C0 = RS0 * CFrame.Angles(-0.3,0,0)
+            end
+
+            task.wait(0.05)
         end
     end)
 end
