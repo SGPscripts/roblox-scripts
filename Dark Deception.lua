@@ -96,7 +96,7 @@ Tab:CreateToggle({
                                 if npcPart then
                                     local distance = (hrp.Position - npcPart.Position).Magnitude
                                     
-                                    if distance <= 10 then
+                                    if distance <= 15 then
                                         if spawnPosition then
                                             hrp.CFrame = spawnPosition + Vector3.new(0, 3, 0)
                                         end
