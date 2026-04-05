@@ -9,3 +9,5 @@ local Window = Rayfield:CreateWindow({
 	},
 	KeySystem = false
 })
+---- useful xD
+local UsefulTab = Window:CreateTab("Useful", 4483362458)
