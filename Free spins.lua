@@ -21,8 +21,10 @@ Tab:CreateToggle({
         if toggle then
             task.spawn(function()
                 while toggle do
-                    local folder = workspace:FindFirstChild("WinParts")
-                    
+                    -- nueva ruta correcta
+                    local obbies = workspace:FindFirstChild("Obbies")
+                    local folder = obbies and obbies:FindFirstChild("WinParts")
+
                     if folder then
                         local parts = {}
 
