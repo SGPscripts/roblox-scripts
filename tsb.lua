@@ -489,3 +489,32 @@ MainTab:CreateToggle({
         ViewUlt = v
     end
 })
+
+local autoTP = false
+
+Tab:CreateToggle({
+   Name = "tp a las montañas en baja vida",
+   CurrentValue = false,
+   Callback = function(Value)
+      autoTP = Value
+   end,
+})
+
+task.spawn(function()
+   while true do
+      task.wait(0.2)
+
+      if autoTP then
+         local player = game.Players.LocalPlayer
+         local char = player.Character
+
+         if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+            local humanoid = char.Humanoid
+
+            if humanoid.Health > 0 and humanoid.Health < 10 then
+               char.HumanoidRootPart.CFrame = CFrame.new(166, 629, -480)
+            end
+         end
+      end
+   end
+end)
