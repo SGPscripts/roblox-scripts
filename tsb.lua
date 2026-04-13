@@ -489,3 +489,34 @@ MainTab:CreateToggle({
         ViewUlt = v
     end
 })
+
+-- auto tp
+local autoTP = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto TP si vida < 10",
+   CurrentValue = false,
+   Flag = "AutoTPLowHP", -- importante para que aparezca bien
+   Callback = function(Value)
+      autoTP = Value
+   end,
+})
+
+spawn(function()
+   while true do
+      wait(0.2)
+
+      if autoTP then
+         local player = game.Players.LocalPlayer
+         local char = player.Character or player.CharacterAdded:Wait()
+
+         if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+            local humanoid = char.Humanoid
+
+            if humanoid.Health > 0 and humanoid.Health < 10 then
+               char.HumanoidRootPart.CFrame = CFrame.new(166, 629, -480)
+            end
+         end
+      end
+   end
+end)
