@@ -511,7 +511,7 @@ task.spawn(function()
             if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
                 local humanoid = char.Humanoid
 
-                if humanoid.Health > 0 and humanoid.Health < 10 then
+                if humanoid.Health > 0 and humanoid.Health < 25 then
                     char.HumanoidRootPart.CFrame = CFrame.new(166, 629, -480)
                 end
             end
