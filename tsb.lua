@@ -518,3 +518,39 @@ task.spawn(function()
         end
     end
 end)
+
+--- instant reviva 
+local respawnConn = nil
+
+Tab:CreateToggle({
+   Name = "Instant Revive",
+   CurrentValue = false,
+   Callback = function(Value)
+      local player = game.Players.LocalPlayer
+
+      if Value then
+         respawnConn = player.CharacterAdded:Connect(function(char)
+            local humanoid = char:WaitForChild("Humanoid")
+            local root = char:WaitForChild("HumanoidRootPart")
+
+            humanoid.Died:Connect(function()
+               local lastPos = root.CFrame
+
+               task.wait() -- mini delay
+
+               player:LoadCharacter()
+
+               local newChar = player.Character or player.CharacterAdded:Wait()
+               local newRoot = newChar:WaitForChild("HumanoidRootPart")
+
+               newRoot.CFrame = lastPos -- te revive en el mismo lugar
+            end)
+         end)
+      else
+         if respawnConn then
+            respawnConn:Disconnect()
+            respawnConn = nil
+         end
+      end
+   end,
+})
