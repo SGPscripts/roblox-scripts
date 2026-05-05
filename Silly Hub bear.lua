@@ -87,3 +87,29 @@ UtilTab:CreateButton({
         end)
     end
 })
+--// fullbright toggle button
+local Lighting = game:GetService("Lighting")
+
+local fullbrightEnabled = false
+
+UtilTab:CreateToggle({
+    Name = "Fullbright",
+    CurrentValue = false,
+    Callback = function(Value)
+        fullbrightEnabled = Value
+
+        if fullbrightEnabled then
+            task.spawn(function()
+                while fullbrightEnabled do
+                    Lighting.Brightness = 2
+                    Lighting.ClockTime = 14
+                    Lighting.FogEnd = 100000
+                    Lighting.GlobalShadows = false
+                    Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+
+                    task.wait(10) -- reintenta cada 10s
+                end
+            end)
+        end
+    end
+})
