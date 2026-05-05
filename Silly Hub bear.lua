@@ -78,3 +78,10 @@ UtilTab:CreateButton({
         loadstring(game:HttpGet("https://pastebin.com/raw/7QhAURp2"))()
     end
 })
+--// infinite yield loader
+UtilTab:CreateButton({
+    Name = "Cargar infinite yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end
+})
