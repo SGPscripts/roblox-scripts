@@ -82,6 +82,8 @@ UtilTab:CreateButton({
 UtilTab:CreateButton({
     Name = "Cargar infinite yield",
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        end)
     end
 })
