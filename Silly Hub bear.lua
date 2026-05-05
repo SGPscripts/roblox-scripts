@@ -73,7 +73,7 @@ Tab:CreateParagraph({
 local UtilTab = Window:CreateTab("Utilidades", 4483362458)
 
 UtilTab:CreateButton({
-    Name = "Bypass anticheat (con esto podes volar, usar velocidad, fling y mas sin necesidad de godmode o algun otro script",
+    Name = "Bypass anticheat (con esto podes volar, usar velocidad, fling y mas sin necesidad de godmode o algun otro script)",
     Callback = function()
         loadstring(game:HttpGet("https://pastebin.com/raw/7QhAURp2"))()
     end
