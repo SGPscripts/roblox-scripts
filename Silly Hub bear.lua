@@ -1,17 +1,66 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+--// services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VIM = game:GetService("VirtualInputManager")
 
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// rayfield loader estable
+pcall(function()
+    getgenv().SecureMode = true
+end)
+
+local mirrors = {
+    "https://sirius.menu/rayfield",
+    "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua",
+    "https://raw.githubusercontent.com/jensonhirst/Rayfield/main/source"
+}
+
+local function httpget(url)
+    local ok, res = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if ok and type(res) == "string" then
+        return res
+    end
+    return nil
+end
+
+local Rayfield
+for _, url in ipairs(mirrors) do
+    local src = httpget(url)
+    if src then
+        local ok, lib = pcall(function()
+            return loadstring(src)()
+        end)
+        if ok and lib then
+            Rayfield = lib
+            break
+        end
+    end
+end
+
+if not Rayfield then
+    warn("rayfield no cargo")
+    return
+end
+
+--// window
 local Window = Rayfield:CreateWindow({
-    Name = "Silly Hub",
+    Name = "S1LLY HUB",
     LoadingTitle = "Cargando...",
     LoadingSubtitle = "By SGP SCRIPTS",
     ConfigurationSaving = {
-        Enabled = true
+        Enabled = false
     }
 })
 
+--// tab
 local Tab = Window:CreateTab("Info", 4483362458)
-- Info Text
+
+--// texto
 Tab:CreateParagraph({
     Title = "Info",
-    Content = "Hola, Este script fue creado por SGP SCRIPTS, esta hecho para que farmees quidz faciles y uses tus exploits comodos con este hub"
+    Content = "Hola, Este es un script de bear alpha creado por SGP SCRIPTS, Fue hecho para que puedas farmear comodo en bear alpha sin necesidad de otros jugadores, ¡Gracias por usar este script!"
 })
