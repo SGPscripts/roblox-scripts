@@ -92,15 +92,18 @@ local Lighting = game:GetService("Lighting")
 
 local fullbrightEnabled = false
 local savedLighting = {}
+local loopId = 0
 
 UtilTab:CreateToggle({
     Name = "Fullbright",
     CurrentValue = false,
     Callback = function(Value)
         fullbrightEnabled = Value
+        loopId += 1
+        local currentLoop = loopId
 
         if fullbrightEnabled then
-            -- guardar valores originales
+            -- guardar valores
             savedLighting = {
                 Brightness = Lighting.Brightness,
                 ClockTime = Lighting.ClockTime,
@@ -110,7 +113,7 @@ UtilTab:CreateToggle({
             }
 
             task.spawn(function()
-                while fullbrightEnabled do
+                while fullbrightEnabled and currentLoop == loopId do
                     Lighting.Brightness = 2
                     Lighting.ClockTime = 14
                     Lighting.FogEnd = 100000
@@ -122,8 +125,11 @@ UtilTab:CreateToggle({
             end)
 
         else
-            -- restaurar valores
-            if savedLighting then
+            -- cortar loop (invalidando id)
+            loopId += 1
+
+            -- restaurar
+            if savedLighting.Brightness then
                 Lighting.Brightness = savedLighting.Brightness
                 Lighting.ClockTime = savedLighting.ClockTime
                 Lighting.FogEnd = savedLighting.FogEnd
