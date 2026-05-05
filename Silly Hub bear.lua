@@ -91,6 +91,7 @@ UtilTab:CreateButton({
 local Lighting = game:GetService("Lighting")
 
 local fullbrightEnabled = false
+local savedLighting = {}
 
 UtilTab:CreateToggle({
     Name = "Fullbright",
@@ -99,6 +100,15 @@ UtilTab:CreateToggle({
         fullbrightEnabled = Value
 
         if fullbrightEnabled then
+            -- guardar valores originales
+            savedLighting = {
+                Brightness = Lighting.Brightness,
+                ClockTime = Lighting.ClockTime,
+                FogEnd = Lighting.FogEnd,
+                GlobalShadows = Lighting.GlobalShadows,
+                OutdoorAmbient = Lighting.OutdoorAmbient
+            }
+
             task.spawn(function()
                 while fullbrightEnabled do
                     Lighting.Brightness = 2
@@ -107,9 +117,19 @@ UtilTab:CreateToggle({
                     Lighting.GlobalShadows = false
                     Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
 
-                    task.wait(10) -- reintenta cada 10s
+                    task.wait(10)
                 end
             end)
+
+        else
+            -- restaurar valores
+            if savedLighting then
+                Lighting.Brightness = savedLighting.Brightness
+                Lighting.ClockTime = savedLighting.ClockTime
+                Lighting.FogEnd = savedLighting.FogEnd
+                Lighting.GlobalShadows = savedLighting.GlobalShadows
+                Lighting.OutdoorAmbient = savedLighting.OutdoorAmbient
+            end
         end
     end
 })
