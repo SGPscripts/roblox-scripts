@@ -64,3 +64,8 @@ Tab:CreateParagraph({
     Title = "Info",
     Content = "Hola, Este es un script de bear alpha creado por SGP SCRIPTS, Fue hecho para que puedas farmear comodo en bear alpha sin necesidad de otros jugadores, ¡Gracias por usar este script!"
 })
+--// version
+Tab:CreateParagraph({
+    Title = "Version",
+    Content = "Version: v1.0"
+})
