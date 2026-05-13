@@ -49,3 +49,9 @@ UsefulTab:CreateButton({
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 	end,
 })
+-- NAMELESS ADMIN
+UsefulTab:CreateButton({
+		Name = "Nameless admin",
+		Callback = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/NamelessAdmin/main/Source"))()
+		end,
