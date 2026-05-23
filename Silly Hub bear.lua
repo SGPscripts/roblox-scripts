@@ -186,3 +186,18 @@ UtilTab:CreateToggle({
         end
     end
 })
+if obj.Name == "CakeRed" and obj:IsA("Model") then
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+    if hrp then
+        local targetPart =
+            obj.PrimaryPart
+            or obj:FindFirstChildWhichIsA("BasePart")
+
+        if targetPart then
+            hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+            task.wait(0.2)
+        end
+    end
+end
