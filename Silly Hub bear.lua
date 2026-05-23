@@ -139,3 +139,50 @@ UtilTab:CreateToggle({
         end
     end
 })
+-- collect all cakes
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local collectingCakes = false
+local cakeLoopId = 0
+
+UtilTab:CreateToggle({
+    Name = "Collect all cakes (event)",
+    CurrentValue = false,
+    Callback = function(Value)
+        collectingCakes = Value
+        cakeLoopId += 1
+
+        local currentLoop = cakeLoopId
+
+        if collectingCakes then
+            task.spawn(function()
+                while collectingCakes and currentLoop == cakeLoopId do
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if not collectingCakes or currentLoop ~= cakeLoopId then
+                            break
+                        end
+
+                        if obj.Name == "CakePink" and obj:IsA("Model") then
+                            local character = LocalPlayer.Character
+                            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+                            if hrp then
+                                local targetPart =
+                                    obj.PrimaryPart
+                                    or obj:FindFirstChildWhichIsA("BasePart")
+
+                                if targetPart then
+                                    hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                                    task.wait(0.2)
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
