@@ -139,7 +139,7 @@ UtilTab:CreateToggle({
         end
     end
 })
--- collect all cakes
+--collect all cakes
 local Players = game:GetService("Players")
 
 local LocalPlayer = Players.LocalPlayer
@@ -163,7 +163,7 @@ UtilTab:CreateToggle({
                             break
                         end
 
-                        if obj.Name == "CakePink" and obj:IsA("Model") then
+                        if (obj.Name == "CakePink" or obj.Name == "CakeRed") and obj:IsA("Model") then
                             local character = LocalPlayer.Character
                             local hrp = character and character:FindFirstChild("HumanoidRootPart")
 
@@ -186,18 +186,3 @@ UtilTab:CreateToggle({
         end
     end
 })
-if obj.Name == "CakeRed" and obj:IsA("Model") then
-    local character = LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-
-    if hrp then
-        local targetPart =
-            obj.PrimaryPart
-            or obj:FindFirstChildWhichIsA("BasePart")
-
-        if targetPart then
-            hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-            task.wait(0.2)
-        end
-    end
-end
