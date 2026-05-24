@@ -360,11 +360,11 @@ end)
 
 -- Notice Message    
 StarterGui:SetCore("SendNotification", {    
-    Title = "AFK Mode Warning",    
-    Text = "Turn on AFK mode! If not, you'll get banned. If on, you're safe!",    
+    Title = "ALERTA DE AFK",    
+    Text = "¡PRENDÉ EL MODO AFL AHORA! SI NO, RESULTARAS BANEADO,ESTAS AVISADO!",    
     Duration = 9    
 })    
-print("Bear [Alpha] Hub!: Auto Farm Script Executed✔")
+print("Silly hub: El autofarm quidz fue ejecutado correctamente! ✔")
 
 end,
 
