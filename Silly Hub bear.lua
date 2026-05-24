@@ -186,3 +186,12 @@ UtilTab:CreateToggle({
         end
     end
 })
+--op FLING GUI
+UtilTab:CreateButton({
+    Name = "OP FLING GUI",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/4nYEdANe"))()
+        end)
+    end
+})
