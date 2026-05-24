@@ -196,7 +196,7 @@ UtilTab:CreateButton({
     end
 })
 -- autofarm quidz
-local Button = Tab:CreateButton({
+UtilTab:CreateButton({
 Name = "Autofarm quidz",
 Callback = function()
 -- Services
