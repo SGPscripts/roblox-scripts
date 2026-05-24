@@ -419,7 +419,7 @@ UtilTab:CreateToggle({
 local SurvivorTab = Window:CreateTab("Supervivientes", 4483362458)
 
 --infinite stamina
-local Button = Tab:CreateButton({
+local Button = SurvivorTab:CreateButton({
 Name = "Infinite stamina (resistencia infinita, corre para siempre a la vrg xd)",
 Callback = function()
 if _G.__TPWALK_RUNNING then
