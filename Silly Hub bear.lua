@@ -369,3 +369,48 @@ print("Silly hub: El autofarm quidz fue ejecutado correctamente! ✔")
 end,
 
 })
+--// no clip (xd) 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local noclipEnabled = false
+local noclipConnection
+
+UtilTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Callback = function(Value)
+        noclipEnabled = Value
+
+        if noclipEnabled then
+            noclipConnection = RunService.Stepped:Connect(function()
+                local character = LocalPlayer.Character
+
+                if character then
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+
+            local character = LocalPlayer.Character
+
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
