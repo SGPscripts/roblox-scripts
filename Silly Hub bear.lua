@@ -414,3 +414,115 @@ UtilTab:CreateToggle({
         end
     end
 })
+--survivor tab
+
+local SurvivorTab = Window:CreateTab("Supervivientes", 4483362458)
+
+--infinite stamina
+local Button = Tab:CreateButton({
+Name = "Infinite stamina (resistencia infinita, corre para siempre a la vrg xd)",
+Callback = function()
+if _G.__TPWALK_RUNNING then
+    _G.__TPWALK_RUNNING:Disconnect()
+    _G.__TPWALK_RUNNING = nil
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local plr = Players.LocalPlayer
+
+local TPWALK_SPEED = 5.275
+local BEARTPWALK_SPEED = 4.7
+local LADDER_SPEED = 5.275
+local SAFE_BUFFER = 0.15
+
+local LADDER_TAGS = { "Ladder", "Climb", "Climbable", "Truss" }
+
+local function getChar()
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local char = getChar()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
+
+plr.CharacterAdded:Connect(function(c)
+    char = c
+    hrp = c:WaitForChild("HumanoidRootPart")
+    hum = c:WaitForChild("Humanoid")
+end)
+
+-- Team checks
+local function isBear()
+    if plr.Team and plr.Team.Name == "Bear" then return true end
+    if plr:FindFirstChild("Role") and plr.Role.Value == "Bear" then return true end
+    return false
+end
+
+local function isSurvivors()
+    if plr.Team and plr.Team.Name == "Survivors" then return true end
+    if plr:FindFirstChild("Role") and plr.Role.Value == "Survivors" then return true end
+    return false
+end
+
+-- Raycast params
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+rayParams.IgnoreWater = true
+
+-- Helpers
+local function isLadder(hit)
+    if not hit or not hit.Instance then return false end
+    local inst = hit.Instance
+    for _, tag in ipairs(LADDER_TAGS) do
+        if inst.Name:lower():find(tag:lower()) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Core loop
+_G.__TPWALK_RUNNING = RunService.RenderStepped:Connect(function(dt)
+    if not (isBear() or isSurvivors()) then return end
+    if not hrp or not hum then return end
+
+    rayParams.FilterDescendantsInstances = { char }
+
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude == 0 then return end
+
+    local speed = isBear() and BEARTPWALK_SPEED or TPWALK_SPEED
+    local step = speed * dt
+    local stepDir = moveDir.Unit
+    local desired = stepDir * step
+
+    -- Thin-part safety
+    if Workspace:Raycast(hrp.Position, desired + stepDir * SAFE_BUFFER, rayParams) then
+        return
+    end
+
+    -- Slope handling
+    local downHit = Workspace:Raycast(hrp.Position, Vector3.new(0, -4, 0), rayParams)
+    if downHit then
+        local normal = downHit.Normal
+        desired = desired - normal * desired:Dot(normal)
+    end
+
+    -- Ladder logic with smooth horizontal movement
+    local ladderCheck = Workspace:Raycast(hrp.Position, hrp.CFrame.LookVector * 1.5, rayParams)
+    if ladderCheck and isLadder(ladderCheck) then
+        -- vertical climb vector
+        local climb = Vector3.new(0, LADDER_SPEED * dt, 0)
+        -- combine horizontal movement with vertical climb
+        hrp.CFrame = hrp.CFrame + desired + climb
+        return
+    end
+
+    hrp.CFrame = hrp.CFrame + desired
+end)
+print("silly Hub: infinite sta mina fue ejecutado correctamente")
+end,
+})
